@@ -60,11 +60,11 @@ cp -r ./tmpl $DIR_NAME
 # zipファイルに圧縮
 #==============================================================================
 echo "create zip file..."
-find ./$DIR_NAME/docs    \! -path '*/CVS*' -exec zip $DIR_NAME.zip {} \;
-find ./$DIR_NAME/lib     \! -path '*/CVS*' -exec zip $DIR_NAME.zip {} \;
-find ./$DIR_NAME/plugin  \! -path '*/CVS*' -exec zip $DIR_NAME.zip {} \;
-find ./$DIR_NAME/theme   \! -path '*/CVS*' -exec zip $DIR_NAME.zip {} \;
-find ./$DIR_NAME/tmpl    \! -path '*/CVS*' -exec zip $DIR_NAME.zip {} \;
+find ./$DIR_NAME/docs    \! -path '*/.svn*' -exec zip $DIR_NAME.zip {} \;
+find ./$DIR_NAME/lib     \! -path '*/.svn*' -exec zip $DIR_NAME.zip {} \;
+find ./$DIR_NAME/plugin  \! -path '*/.svn*' -exec zip $DIR_NAME.zip {} \;
+find ./$DIR_NAME/theme   \! -path '*/.svn*' -exec zip $DIR_NAME.zip {} \;
+find ./$DIR_NAME/tmpl    \! -path '*/.svn*' -exec zip $DIR_NAME.zip {} \;
 
 zip $DIR_NAME.zip ./$DIR_NAME/config/config.dat
 zip $DIR_NAME.zip ./$DIR_NAME/config/farmconf.dat
