@@ -147,6 +147,10 @@ sub save_page {
 		$self->_create_page_list_file($page, 'remove');
 		unlink($wikifile);
 		$wiki->set_page_level($page);
+		# 更新日時を削除
+		my $modtime = &Util::load_config_hash($wiki,$MODTIME_FILE);
+		delete $modtime->{$page};
+		&Util::save_config_hash($wiki,$MODTIME_FILE,$modtime);
 		# 削除時はバックアップファイルを残す
 		#unlink(&Util::make_filename($wiki->config('backup_dir'),&Util::url_encode($page),"bak"));
 	} else {
