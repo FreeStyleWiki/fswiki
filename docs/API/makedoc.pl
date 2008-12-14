@@ -11,6 +11,7 @@ my $count = 0;
 print "<html>\n";
 print "<head>\n";
 print "<title>Module Reference</title>\n";
+print "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=EUC-JP\">\n";
 print "<link rel=\"stylesheet\" type=\"text/css\" href=\"../default.css\">\n";
 print "</head>\n";
 print "<body>\n";
