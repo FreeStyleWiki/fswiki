@@ -1,0 +1,43 @@
+/* エラーメッセージ */
+.error {
+  color       : #FF0000;
+  font-weight : bold;
+}
+
+/* 存在しないWikiページ */
+span.nopage {
+  background-color : #FFFF88;
+}
+
+/* Wikiページへのアンカ */
+a.wikipage:link {
+  text-decoration : underline;
+}
+
+a.wikipage:visited {
+  text-decoration : underline;
+}
+
+a.wikipage:hover {
+  background-color: #DDDDDD;
+  text-decoration : underline;
+}
+
+/* parteditプラグイン */
+div.partedit {
+  text-align : right;
+  font-size  : 80%;
+}
+
+/* calendarプラグイン */
+td.today {
+  background-color : #FF8888;
+}
+
+td.have {
+  font-weight : bold;
+}
+
+.calendar td {
+  text-align : right;
+}

@@ -1,0 +1,665 @@
+/* ーーーーーー全体の設定ーーーーーー */
+body {
+	background-color: white;
+	color           : black;
+	font-size      : 14px;
+	line-height:20px;
+	margin : 0px;
+	padding: 0px;
+}
+
+input,textarea{
+	font-family:"Osaka",sans-serif;
+	font-size      : 14px;
+}
+
+div.section img{
+	margin-top : 3px;
+	margin-bottom :0px;
+	margin-left : 35px;
+	padding: 0px;
+}
+
+iframe{
+	margin : 0px;
+	padding: 0px;
+	border : 0px;
+}
+
+div.section p{
+	margin : 1em 10px 1em 35px;
+	text-indent:1em;
+}
+/* リストスタイル */
+ul li {
+	font-family:"Osaka",sans-serif;
+	list-style-image: url('./list_a.gif')
+}
+
+ul li ul li {
+	font-family:sans-serif;
+	list-style-image: url('./list_b.gif')
+}
+
+ul li ul li ul li {
+	font-family:sans-serif;
+	list-style-image: url('./list_c.gif')
+}
+
+div.section ul,div.section ol{
+	margin : 0.3em 0.3em 0.3em 35px;
+}
+
+div.section ul li,div.section ol li {
+	margin-top : 0.1em;
+	margin-bottom : 0.1em;
+}
+
+
+/* リンクの設定 */
+A:link,A:visited { 
+	color            :#422100;
+	text-decoration : underline;
+}
+
+A:hover {
+	color           : #fe3670;
+	text-decoration : underline;
+	background-color: #fff4ab;
+}
+
+A:active {
+	color           : #FFFF00;
+	text-decoration : none;
+}
+
+/* ーーーーーー全体の設定 終了ーーーーーー */
+
+/* ーーーーーーメニューの設定開始ーーーーーー */
+/* メニューのサイズ */
+div.adminmenu {
+	background-color: #c8c9b5;
+	background-repeat: no-repeat;
+	font-family:"Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W8","Osaka",sans-serif;
+	font-size      : 12px;
+	line-height : 26px;
+	font-weight  : bold;
+	text-align: right;
+	height : 26px;
+	padding-right : 2px;
+	margin-left: 205px;
+
+}
+
+/* メニューの装飾 */
+/* リンク */
+div.adminmenu A{
+	padding : 2px 7px;
+	font-weight  : bold;
+	text-decoration  : none;
+}
+
+div.adminmenu A:link,div.adminmenu A:visited { 
+	text-decoration  : none;
+	color: white;
+	font-weight  : bold;
+}
+
+/* カーソルを上に持ってきた時リンク */
+div.adminmenu A:hover {
+	text-decoration  : none;
+	font-weight  : bold;
+	color           : #FFFFFF;
+	background-color: #3CB371;
+}
+/* ーーーーーーメニューの設定終了ーーーーーー */
+
+/* ーーーーーー headerの設定 ーーーーーー */
+div.header {
+	background-color: #f8f5f1;
+	padding: 1px 18px;
+	font-size   : 11px;
+	line-height:13px;
+	margin-top: 0px;
+}
+
+div.header li,div.header li A:link,div.header li A:visited{
+	text-decoration : none;
+}
+
+div.header li A:hover{
+	text-decoration : underline;
+}
+
+div.header ul li{
+	list-style-image: url('./go_back_1.gif')
+}
+
+div.header ul li ul li{
+	list-style-image: url('./go_back_2.gif')
+}
+
+div.header ul li ul li ul li{
+	list-style-image: url('./go_back_3.gif')
+}
+/* ーーーーーー headerの設定終了 ーーーーーー */
+
+/* ーーーーーー footer設定 ーーーーーー */
+.footer {
+	margin-top:0px;
+	margin-right:3px;
+	margin-bottom:0px;
+	text-align  : right;
+	font-size   : 10px;
+	font-style  : italic;
+	background-position: left bottom;
+	background-repeat: no-repeat;
+	background-color: white;
+	height: 29px;
+}
+
+.footer A {
+	text-decoration  : none;
+}
+/* ーーーーーー footer設定終了 ーーーーーー */
+
+hr {
+	border-top    : #3CB371 2px solid;
+	color : #3CB371;
+}
+
+/* ーーーーーー □囲み文字 ーーーーーー */
+pre {
+	-moz-border-radius: 10px;
+	border : #D3D3D3 1px solid;
+	background-color: #f8f5f1;
+	margin : 10px 20px 10px 35px;
+	padding: 5px 15px 5px 15px;
+	font-size      : 13px;
+}
+
+/* ーーーーーー 引用文 ーーーーーー */
+blockquote {
+	-moz-border-radius: 10px;
+	border      : #d4d4d4 1px dotted;
+	background-color: #f8f5f1;
+	padding: 5px 15px 5px 15px;
+	margin : 10px 20px 10px 35px;
+	font-size      : 13px;
+	font-style  : italic;
+}
+
+/* ーーーーーー見出しの設定開始ーーーーーー /
+/* H1 */
+h1{
+	font-family:"Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W8","Osaka",sans-serif;
+	font-weight  : bold;
+	text-align       : right;
+	font-size   : 30px;
+	line-height:46px;
+	letter-spacing:2px;
+	border-bottom   : #c8c9b5 6px solid;
+	margin-left: 205px;
+	margin-top: 0px;
+	margin-right: 0px;
+	margin-bottom: 0px;
+	padding-right : 18px;
+	background-image: url(./himg2.jpg);
+	background-repeat: no-repeat;
+}
+
+h1 A:link,h1 A:visited{
+	font-family:"Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W8","Osaka",sans-serif;
+	color : black;
+	text-decoration : none;
+	text-shadow: #3CB371 0px 0px 10px;
+}
+
+h1 A:hover {
+	font-family:"Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W8","Osaka",sans-serif;
+	font-weight  : bold;
+	color            : #fe3670;
+	text-shadow: yellow 0px 0px 10px;
+}
+
+/* H2 */
+h2 {
+	font-family:"Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W8","Osaka",sans-serif;
+	font-weight  : bold;
+	font-size   : 20px;
+	line-height  :20px;
+	letter-spacing:3px;
+	color            : White;
+	padding-left     : 35px;
+	padding-top      : 4px;
+	padding-bottom      : 4px;
+	background: #3CB371 url(./slc1.gif) no-repeat left top;
+	margin-top:30px;
+	margin-bottom:3px;
+}
+
+h2 A:link,h2 A:visited { 
+	font-family:"Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W8","Osaka",sans-serif;
+	font-weight  : bold;
+	color            : White;
+	text-decoration : none;
+}
+
+h2 A:hover {
+	font-family:"Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W8","Osaka",sans-serif;
+	font-weight  : bold;
+	color            : #fe3670;
+	text-decoration : none;
+}
+
+/* H3 */
+h3 {
+	font-family:"Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W8","Osaka",sans-serif;
+	font-weight  : bold;
+	color : black;
+	font-size   : 17px;
+	line-height  :25px;
+	letter-spacing:2px;
+	background-color: #f8f5f1;
+	border-top    : #3CB371 2px solid;
+	border-left   : #3CB371 32px solid;
+	padding-left  : 3px;
+	text-shadow: #808080 2px 2px 3px;
+	margin-top:15px;
+	margin-bottom:5px;
+	text-decoration : none;
+}
+
+h3 A:link,h3 A:visited{
+	font-family:"Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W8","Osaka",sans-serif;
+	font-weight  : bold;
+	color: black;
+	text-decoration : none;
+}
+
+h3 A:hover {
+	font-family:"Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W8","Osaka",sans-serif;
+	font-weight  : bold;
+	color            : #fe3670;
+	text-decoration : none;
+}
+
+/* H4 */
+h4 {
+	font-family:"Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W8","Osaka",sans-serif;
+	font-weight  : bold;
+	color : black;
+	font-size   : 15px;
+	line-height  :23px;
+	background-color: #f8f5f1;
+	border-left   : #3CB371 32px solid;
+	padding-left  : 3px;
+	text-shadow: #808080 2px 2px 3px;
+	margin-top:7px;
+	margin-bottom:5px;
+}
+
+h4 A:link,h4 A:visited{
+	font-family:"Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W8","Osaka",sans-serif;
+	font-weight  : bold;
+	color: black;
+	text-decoration : none;
+}
+
+h4 A:hover {
+	font-family:"Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W8","Osaka",sans-serif;
+	font-weight  : bold;
+	color            : #fe3670;
+	text-decoration : none;
+}
+/* ーーーーーー見出しの設定終了ーーーーーー */
+
+/* ーーーーーーテーブル設定開始 ーーーーーー */
+table {
+	margin : 10px 10px 10px 35px;
+	border-collapse: collapse;
+	border-spacing: 0;
+	empty-cells: show;
+	border   : #D3D3D3 1px solid;
+}
+
+th {
+	padding-left : 20px;
+	padding-right : 20px;
+	background-color : #f8f5f1;
+	font-size      : 11px;
+	line-height  :11px;
+	padding :5px;
+	border   : #D3D3D3 1px solid;
+}
+
+td {
+	padding-left : 20px;
+	padding-right : 20px;
+	font-size      : 12px;
+	line-height  :12px;
+	padding :5px 10px;
+	border   : #D3D3D3 1px solid;
+}
+/* ーーーーーーテーブル設定終了 ーーーーーー */
+/* ーーーーーー parteditプラグイン ーーーーーー */
+div.partedit {
+	font-family:"Osaka",sans-serif;
+	font-size  : 12px;
+	line-height  :12px;
+	margin-top:-2.3em;
+	text-align : right;
+	padding : 3px 15px 3px 15px;
+}
+
+div.partedit A{ 
+	text-decoration  : none;
+}
+
+/* ーーーーーー parteditプラグイン終了 ーーーーーー */
+dl {
+	margin : 0.5em 10px 0.5em 35px;
+}
+dt {
+	border-bottom : #696969 1px dotted;
+	font-weight   : bold;
+	font-size      : 14px;
+	line-height  :18px;
+}
+
+dd {
+	margin-left   : 20px;
+	line-height  :24px;
+}
+
+div.main {
+	margin-left: 205px;
+	margin-right: 1px;
+}
+
+/* ーーーーーー footer 設定開始 ーーーーーー */
+div.comment {
+	padding  : 4px 16px;
+	margin-top       : 10px;
+	margin-bottom    : 10px;
+	font-size        : 12px;
+	background-color: #f8f5f1;
+}
+
+div.comment p {
+	margin-top : 5px;
+	margin-bottom : 5px;
+}
+
+div.comment p A{
+	color : black;
+	text-decoration  : none;
+}
+
+div.comment p  A:hover {
+	color : #fe3670;
+	text-decoration  : underline;
+}
+
+div.comment h3 {
+	font-family:sans-serif;
+	font-size   : 12px;
+	line-height  :18px;
+	background-color: white;
+	border-top    : #c8c9b5 2px solid;
+	border-right   : #c8c9b5 15px solid;
+	border-bottom    : #c8c9b5 2px solid;
+	border-left   : #c8c9b5 15px solid;
+	padding-left  : 3px;
+	text-shadow: #696969 2px 2px 3px;
+	margin:6px 0px;
+}
+
+div.comment h3 A:link {
+	color : black;
+}
+/* ーーーーーー footer 設定終了 ーーーーーー */
+
+/* ーーーーーー サイドバー(メニュー)設定開始 ーーーーーー */
+/* サイドバー(メニュー)設定 */
+div.sidebar {
+	overflow: hidden;
+	position        : absolute;
+	top             : 0px;
+	left            : 1px;
+	width           : 190px;
+	word-break      : break-all;
+	background-color: #f8f5f1;
+}
+/* サイドバー(メニュー)見出し設定 */
+div.sidebar h2,div.sidebar h3,div.sidebar h4{
+	font-family:"Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W8","Osaka",sans-serif;
+	font-size   : 14px;
+	line-height  :20px;
+	margin:0px;
+	background-color : #c8c9b5;
+	background-image: url(./sid_men.jpg);
+	background-repeat: no-repeat;
+	border:0px;
+	padding-top: 4px;
+	padding-bottom: 2px;
+	padding-left   : 15px;
+	letter-spacing:1px;
+}
+
+div.sidebar img{
+	margin: 0px 0px 5px 5px;
+	padding : 0px;
+}
+
+div.g4ser{
+	margin : 0 0 -2em 0;
+	padding : 0;
+	border: 0;
+}
+
+/* サイドバー(メニュー)リスト設定 */
+div.sidebar ul,div.sidebar li {
+	font-family:"Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W8","Osaka",sans-serif;
+	font-size       : 11px;
+	line-height    :15px;
+	padding-left : 0px; 
+	margin-left  : 10px;
+	list-style-type: none;
+	text-decoration : none;
+}
+
+div.sidebar ul{
+	margin-top  : 0;
+	margin-bottom  : 0.5em;
+}
+
+div.sidebar strong {
+	color : #3CB371;
+	padding-left : 17px;
+	font-size       : 10px;
+	line-height    :10px;
+	letter-spacing:2px;
+}
+/*
+div.sidebar li A{
+	padding-left : 0px;
+	border-left  : #f8f5f1 17px solid;
+	list-style-type: none;
+	text-decoration : none;
+}
+
+div.sidebar li A:hover{
+	padding-left : 0px;
+	border-left  : #3CB371 17px solid;
+	list-style-type: none;
+	text-decoration : none;
+}
+
+div.sidebar li A:visited {
+	list-style-type: none;
+	text-decoration : none;
+}
+
+div.sidebar ul li ul li A{
+	padding-left : 15px;
+	border-left  : #f8f5f1 17px solid;
+	list-style-type: none;
+	text-decoration : none;
+}
+
+div.sidebar ul li ul li A:hover{
+	padding-left : 15px;
+	border-left  : #3CB371 17px solid;
+	list-style-type: none;
+	text-decoration : none;
+}
+
+div.sidebar ul li ul li A:visited {
+	list-style-type: none;
+	text-decoration : none;
+}
+
+div.sidebar ul li ul li ul li A{
+	padding-left : 30px;
+	border-left  : #f8f5f1 17px solid;
+	list-style-type: none;
+	text-decoration : none;
+}
+
+div.sidebar ul li ul li ul li A:hover{
+	padding-left : 30px;
+	border-left  : #3CB371 17px solid;
+	list-style-type: none;
+	text-decoration : none;
+}
+
+div.sidebar ul li ul li ul li A:visited {
+	list-style-type: none;
+	text-decoration : none;
+}
+*/
+
+/*  検索padding設定 */
+div.sidebar form {
+	padding-left : 5px;
+}
+
+div.sidebar p,div.sidebar EMBED {
+	padding : 0px;
+	margin  : 0px;
+}
+
+/* 一行コメント */
+div.linecom {
+	margin-top: 0px;
+	margin-left: 35px;
+	padding : 5px;
+	background-color: #c8c9b5;
+}
+
+
+
+/* calendar plugin */
+.calendar {
+	border-collapse: collapse;
+	border-spacing: 0;
+	empty-cells: show;
+	border : 1px #d3d3d3 solid;
+	width  : 798px;
+	height:500px;
+	padding: 0px;
+	text-align: center;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.calendar A {
+	text-decoration : none;
+}
+
+table.calendar th {
+	height: 24px;
+	font-size: 14px;
+	line-height  :14px;
+	padding: 5px;
+}
+
+table.calendar tr {
+ 	border-spacing: 0px;
+	border : 1px #d3d3d3 solid;
+	font-size: 8px;
+	line-height  :12px;
+	margin: 0px;
+	padding: 0px;
+}
+
+table.calendar td {
+ 	border-spacing: 0;
+	border : 1px #d3d3d3 solid;
+	background-color : #f8f5f1;
+	font-size: 14px;
+	line-height  :14px;
+	margin: 0px;
+	padding: 2px;
+	text-align: center;
+	width  : 114px;
+}
+
+table.calendar td.calendar-prev-month,
+table.calendar td.calendar-current-month,
+table.calendar td.calendar-next-month,
+table.calendar td.calendar-sunday,
+table.calendar td.calendar-saturday{
+	background-color : #dadada;
+}
+
+table.calendar td.calendar-weekday{
+	background-color : white;
+}
+
+.calendar-sunday {
+	color: #f00;
+}
+
+.calendar-saturday {
+	color: #00f;
+}
+
+.calendar-weekday {
+	color: #000;
+}
+
+table.calendar td.have A {
+  font-weight : bold;
+  color: #fe3670;
+}
+
+table.calendar td.have{
+  background-color : white;
+}
+
+table.calendar td.today{
+  background-color : #98FB98;
+}
+
+.calendar-prev-month, .calendar-current-month, .calendar-next-month,
+.calendar-sunday, .calendar-weekday, .calendar-saturday {
+	background-color : #D3D3D3;
+}
+
+/* Menu用 */
+div.sidebar .calendar{
+		width  : 190px;
+		height : auto;
+}
+
+/* プリント設定 */
+@media print {
+ div.header,div.adminmenu,div.footer,div.form,div.sidebar,div.partedit,div.comment,form {display:none;}
+ div.day,div.body{border:none;}
+ div.main{margin-left: 0%;}
+ h1 {padding-left: 0px;}
+ h2,h3 { font-size: medium; }
+ a { text-decoration: none; }
+}

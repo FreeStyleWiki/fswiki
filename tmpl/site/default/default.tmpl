@@ -1,0 +1,72 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    
+    <!--TMPL_IF NAME="EDIT_MODE"-->
+      <meta name="ROBOTS" content="NOINDEX, NOFOLLOW">
+    <!--/TMPL_IF-->
+    <!--TMPL_UNLESS NAME="CAN_SHOW"-->
+      <meta name="ROBOTS" content="NOARCHIVE">
+    <!--/TMPL_UNLESS-->
+    
+    <meta http-equiv="Content-Type" content="text/html; charset=EUC-JP">
+    <meta http-equiv="Content-Style-Type" content="text/css">
+    
+    <!--TMPL_VAR NAME="HEAD_INFO"-->
+    
+    <!--TMPL_IF NAME="THEME_CSS"-->
+      <link rel="stylesheet" type="text/css" href="<!--TMPL_VAR NAME="THEME_CSS"-->">
+    <!--/TMPL_IF-->
+    
+    <!--TMPL_IF NAME="HAVE_USER_CSS"-->
+      <style type="text/css">
+      <!--
+      <!--TMPL_VAR NAME="USER_CSS"-->
+      -->
+      </style>
+    <!--/TMPL_IF-->
+    
+    <title><!--TMPL_VAR NAME="SITE_TITLE"--></title>
+  </head>
+  <body>
+  
+  <!--TMPL_VAR NAME="MENU"-->
+  <h1><!--TMPL_VAR NAME="TITLE"--></h1>
+  
+  <!--TMPL_IF NAME="EXIST_PAGE_Menu"-->
+    <div class="main">
+  <!--/TMPL_IF-->
+  
+  <!--TMPL_UNLESS NAME="EDIT_MODE"-->
+    <!--TMPL_IF NAME="EXIST_PAGE_Header"-->
+      <div class="header">
+        <!--FSWIKI_INCLUDE PAGE="Header"-->
+      </div>
+    <!--/TMPL_IF-->
+  <!--/TMPL_UNLESS-->
+  
+  <div class="day">
+    <div class="body">
+      <div class="section">
+        <!--TMPL_VAR NAME="CONTENT"-->
+      </div>
+    </div>
+    <!--TMPL_UNLESS NAME="EDIT_MODE"-->
+      <!--TMPL_IF NAME="EXIST_PAGE_Footer"-->
+        <div class="comment">
+          <!--FSWIKI_INCLUDE PAGE="Footer"-->
+        </div>
+      <!--/TMPL_IF-->
+    <!--/TMPL_UNLESS-->
+  </div>
+
+  <!--TMPL_IF NAME="EXIST_PAGE_Menu"-->
+    </div>
+    <div class="sidebar">
+      <!--FSWIKI_INCLUDE PAGE="Menu"-->
+    </div>
+  <!--/TMPL_IF-->
+  
+  <!--TMPL_VAR NAME="FOOTER"-->
+
+</body></html>

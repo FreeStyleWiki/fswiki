@@ -1,0 +1,41 @@
+<!--=========================================================================-->
+<!-- 管理画面（スパム対策の設定） -->
+<!--=========================================================================-->
+
+<h2>スパム対策</h2>
+
+<h3>保存を拒否するルール</h3>
+<ul>
+	<li>
+		<label for="rule_multi_url">
+			<input type="checkbox" id="rule_multi_url" name="rules" value="RULE_MULTI_URL"
+			<!--TMPL_IF NAME="RULE_MULTI_URL"-->checked<!--/TMPL_IF-->>
+			1行に5個以上のURLが含まれていた場合
+		</label>
+	</li>
+	<li>
+		<label for="rule_no_useragent">
+			<input type="checkbox" id="rule_no_useragent" name="rules" value="RULE_NO_USERAGENT"
+			<!--TMPL_IF NAME="RULE_NO_USERAGENT"-->checked<!--/TMPL_IF-->>
+			ヘッダにUSER-AGENTが含まれていない場合
+		</label>
+	</li>
+</ul>
+
+
+<h3>保存を許可しない文字列</h3>
+<p>
+  <textarea name="spam" rows="10" cols="60"><!--TMPL_VAR NAME="SPAM_CONTENT" ESCAPE="HTML"--></textarea><br>
+  １行に１キーワードずつ入力して下さい。保存時にここで指定したキーワードが含まれていた場合、保存処理が行われなくなります。
+</p>
+
+<h3>編集を拒否するIPアドレス</h3>
+<p>
+  <textarea name="spam_ip" rows="10" cols="60"><!--TMPL_VAR NAME="SPAM_IP" ESCAPE="HTML"--></textarea><br>
+  １行に１つずつ入力して下さい。xxx.xxx.xxx.xxx-xxx.xxx.xxx.xxxのように指定すると範囲指定することが可能です。
+</p>
+
+<p>
+  <input type="submit" name="SAVE" value="設定を保存">
+  <input type="reset" value="リセット">
+</p>

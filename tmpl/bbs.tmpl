@@ -1,0 +1,19 @@
+<!--=========================================================================-->
+<!-- 掲示板の投稿フォーム -->
+<!--=========================================================================-->
+<table>
+  <tr>
+    <th>お名前</th>
+    <td><input type="text" name="name" size="20" value="<!--TMPL_VAR NAME="NAME" ESCAPE="HTML"-->"></td>
+  </tr>
+  <tr>
+    <th>件名</th>
+    <td><input type="text" name="subject" size="60"></td>
+  </tr>
+  <tr>
+    <th>本文</th>
+    <td><textarea cols="60" rows="8" name="message"></textarea></td>
+  </tr>
+</table>
+<input type="submit" value=" 投 稿 ">
+<input type="reset" value="リセット">

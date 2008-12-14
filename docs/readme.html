@@ -1,0 +1,274 @@
+<html>
+<head>
+  <title>README</title>
+  <link rel="stylesheet" type="text/css" href="default.css">
+</head>
+<body>
+<h1>README</h1>
+<h2>概要</h2>
+<p>FreeStyle WikiはPerlによる拡張可能なWikiクローンです。FreeStyle Wikiは以下のような特徴を持っています。</p>
+<ul>
+<li> 徹底的にモジュール化されており、拡張性が高い</li>
+<li> PurePerlで実装されておりDBを使用しないため、多くのレンタルサーバに設置可能</li>
+<li> 日本語でのドキュメント作成に適した文法と機能</li>
+<li> 全ページ共通のヘッダ、フッタ、サイドバーを表示可能</li>
+<li> ファイルの添付が可能</li>
+<li> PDFの生成が可能</li>
+<li> tDiaryのテーマを使用可能</li>
+<li> サイトテンプレート機能によりデザインを大幅に変更することが可能</li>
+<li> ページの凍結機能に加え、簡単なユーザ認証機能を備えている</li>
+<li> mod_perlでも（一応）動作可能</li>
+</ul>
+<h2>インストール</h2>
+<h3>サーバへの設置</h3>
+<p>アーカイブを展開し、そのままのフォルダ構造でサーバにアップロードします（docsディレクトリは不要）。wiki.cgiはブラウザから起動されるスクリプトなのでパーミッションを実行可能にしておきます。また、アップロードしたディレクトリの直下にbackup、attach、pdf、logディレクトリを作成します。ディレクトリのうちdata、backup、attach、pdf、log、configディレクトリにはCGIから書き込みができるパーミッションに、また、data、configディレクトリ内のファイルもCGIから書き込み可能なようにパーミッションを変更してください。</p>
+<p>全体の構成は以下のようになります（数字はパーミッションの一例です）。なお、サーバ上でシェルが利用可能な場合はインストールディレクトリの直下にあるsetup.shを実行することで必要なディレクトリの作成やパーミッションの設定をを自動的に行うことができます。</p>
+<pre>-+-/attach (添付ファイル) 707
+ |
+ +-/pdf (PDFファイル) 707
+ |
+ +-/tmpl (テンプレート) 
+ |
+ +-/backup (バックアップファイル) 707
+ |
+ +-/data (データファイル) 707
+ |  |
+ |  +-*.wiki (デフォルトのデータファイル) 606
+ |
+ +-/log (ログファイル) 707
+ |
+ +-/config (設定ファイル) 707
+ |  |
+ |  +-*.dat (デフォルトの設定ファイル) 606
+ |
+ +-/theme (テーマ)
+ |
+ +-/plugin (プラグイン)
+ |
+ +-/lib (ライブラリ)
+ |
+ +-wiki.cgi (CGIスクリプト本体) 705
+ |
+ +-setup.dat (設定ファイル)
+</pre>
+<p>設定が完了したらブラウザからwiki.cgiを呼び出してみてください。<a href="FrontPage.html" class="wikipage">FrontPage</a>が表示されればとりあえず設置は成功です。</p>
+<h3>setup.datの設定</h3>
+<p>データ保管場所などFreeStyle Wikiの基本的な設定はsetup.datを編集することで行います。</p>
+<p>FreeStyle Wikiでは、ページが変更された場合に管理者にメールで通知する機能があります。この機能を有効にするにはsetup.datの設定内容にsendmailのパスかSMTPサーバのホスト名を設定します。</p>
+<p>また、デフォルトではバックアップは一世代のみですが、backupというパラメータにバックアップする世代数を指定することができます。0を指定すると無制限にバックアップを行います。世代バックアップを行う場合、画面上部の「差分」メニューを選択すると過去の編集履歴が表示され、それぞれについて現在のソースとの差分を閲覧することができます。</p>
+<p>また、rssやamazonなど、一部のプラグインはプログラム中からHTTPで外部のサーバに接続します。プロキシを使用している場合はproxy_host、proxy_port、proxy_user、proxy_passを設定しておく必要があります（proxy_userとproxy_passは認証が必要な場合のみ）。</p>
+<h3>セキュリティ</h3>
+<p>上記で解説したインストール方法ではsetup.datや各種データを保存しているディレクトリをHTTPで参照できてしまいます。セキュリティ上問題になるようであれば.htaccessを使用してアクセス制限を行ってください。</p>
+<pre>&lt;FilesMatch &quot;\.(pm|dat|wiki|log)$&quot;&gt;
+  deny from all
+&lt;/FilesMatch&gt;
+</pre>
+<p>なお、データディレクトリに関してはHTTPでは見えない場所に配置することも可能です。その場合はsetup.datのディレクトリ指定部分を変更してください。</p>
+<h3>バージョンアップ時の設置方法</h3>
+<p>設置ディレクトリ直下にあるsetup.dat、dataディレクトリ、backupディレクトリ、pdfディレクトリ、logディレクトリ、configディレクトリ以外のファイルおよびディレクトリをいったん削除し、配布ファイルで置き換えてください。また、dataディレクトリ内のhelp.wikiはヘルプで表示されるページですのでこれも最新版のファイルで上書きしてください。</p>
+<p>setup.datはできるだけバージョン間で相違のないよう配慮していますが、止むを得ずバージョンアップ時に内容を変更する必要がある場合があります。できれば最新のファイルで上書きしたあと、設定内容を修正するようにしてください。</p>
+<p>また、3.4.0以降ではバージョンアップによって管理画面での設定項目が追加されている場合があります。一度管理ユーザにてログインし、設定の更新を行ってください。</p>
+<h3>データのバックアップ方法</h3>
+<p>dataディレクトリ、attachディレクトリ、configディレクトリをコピーしてください。差分表示が必要であればbackupディレクトリ、PDFも必要であればpdfディレクトリもコピーしてください（PDFファイルはPDFアンカ押下時に生成することができるのでバックアップしなくても構いません）。</p>
+<p>ログは、デフォルトではlogディレクトリにaccess.log（アクセスログ）、freeze.log（凍結用のログ）、attach.log（添付ファイルのログ）が出力されていますので、必要に応じてこれらもコピーしておいてください。</p>
+<h3>mod_perlで使用する場合</h3>
+<p>Ver3.4.1よりmod_perlにも対応しています。wiki.cgiの先頭部分を編集し、chdirの引数にFSWikiのインストールディレクトリを指定してください。例えばFSWikiをC:/Apache/htdocs/fswikiに配置した場合は以下のようになります。</p>
+<pre>BEGIN {
+  if(exists $ENV{MOD_PERL}){
+    # カレントディレクトリの変更
+    use Cwd;
+    chdir(&quot;C:/Apache/htdocs/fswiki&quot;);
+</pre>
+<p>3.5.1以降はApache::Registory環境下でも完全に動作することを確認していますが、それ以前にバージョンでは差分表示やPDF生成など一部の機能の動作に支障がありますApache::PerlRun環境下であれば問題ありません。</p>
+<h2>プラグイン開発</h2>
+<h3>プラグインのインストール</h3>
+<p>プラグインはパッケージごとにディレクトリを作成し、pluginディレクトリに配置します。プラグインを有効にするには管理画面から「プラグインの設定」で該当するプラグインにチェックを入れます。</p>
+<p>プラグインを開発する場合、パッケージごとにまとめてパッケージ名::Installというモジュールを作成し、そのモジュール内でインストール処理を行うようにします。</p>
+<pre>package plugin::test::Install;
+sub install {
+  my $wiki = shift;
+  $wiki-&gt;add_inline_plugin(&quot;hello&quot;,&quot;plugin::test::TestPlugin&quot;);
+}
+</pre>
+<p>有効になっているパッケージは自動的ににplugin::test::Installモジュールのinstallメソッドが呼び出され、プラグインのインストールが行われます。</p>
+<h3>アクションハンドラ</h3>
+<p>アクションハンドラプラグインはactionというリクエストパラメータによってクライアントへのレスポンスを行うプラグインです。アクションハンドラプラグインはdo_actionメソッドを実装したクラスでなくてはなりません。また、戻り値として、表示する内容（HTML）を返すようにします。</p>
+<pre>sub do_action {
+  my $self = shift;
+  my $wiki = shift;
+  return &quot;アクションハンドラプラグインからの出力&quot;;
+}
+</pre>
+<p>アクションハンドラの登録はインストールスクリプト中でWiki#add_handlerメソッドによって行います。</p>
+<pre>$wiki-&gt;add_handler(&quot;EDIT&quot;,&quot;plugin::core::EditPage&quot;);
+</pre>
+<p>管理者のみ使用可能なアクションハンドラはWiki#add_admin_handlerメソッドによって登録します。このメソッドによって登録されたアクションハンドラは管理者としてログインしている場合のみ実行可能になり、それ以外の場合はエラーメッセージを表示します。</p>
+<pre>$wiki-&gt;add_admin_handler(&quot;ADMINPAGE&quot;,&quot;plugin::admin::AdminPageHandler&quot;);
+</pre>
+<h3>フックプラグイン</h3>
+<p>フックプラグインはある契機で特定のメソッドを実行するプラグインです。メニューのON/OFF切り替えや、ページ保存時などのタイミングで特殊な処理を行う場合に使用します。フックプラグインはhookメソッドを実装したクラスでなくてはなりません。</p>
+<p>hookメソッドの第３引数には起動されたフックの名前が渡されます。１つのクラスで複数の処理を実装する場合はこの変数を見て処理を分けます。また、第４引数以降にはWiki#do_hookメソッド呼び出し時に指定されたパラメータ（呼び出し側に依存）が渡されます。独自にフックを定義してパラメータを渡したい場合に使用してください。</p>
+<pre>sub hook {
+  my $self   = shift;
+  my $wiki   = shift;
+  my $name   = shift;
+  my @params = @_;
+  ...
+}
+</pre>
+<p>フックプラグインの登録はインストールスクリプト中でWiki#add_hookメソッドによって行います。</p>
+<pre>$wiki-&gt;add_hook(&quot;show&quot;,&quot;plugin::core::BBS&quot;);
+</pre>
+<p>フックには以下ものが存在します。</p>
+<ul>
+<li>show - ページの表示前に呼ばれます。</li>
+<li>save_before - ページの保存処理前に呼ばれます。</li>
+<li>save_after - ページの保存終了後に呼ばれます（ページ削除時は呼ばれません）。</li>
+<li>delete - ページの削除後に呼ばれます。</li>
+<li>create_wiki - WikiFarmで新しくWikiが作成された場合に呼ばれます。</li>
+<li>remove_wiki - WikiFarmでWikiが削除された場合に呼ばれます。</li>
+<li>initialize - CGIの起動時に呼ばれます。プラグインごとに初期化処理が必要な場合などはこのフックに登録してください。</li>
+</ul>
+<p>また、これ以外にプラグインによっては独自にフックを定義している場合があります。</p>
+<h3>インライン</h3>
+<p>インラインプラグインはWiki文書中に<span class="error">プラグイン名プラグインは存在しません。</span>で埋め込むことで、特殊な出力を行うプラグインです。インラインプラグインはinlineメソッドを実装したクラスでなくてはなりません。戻り値としてWiki形式の文字列またはHTMLを返すようにします。Wiki形式のテキストを返す場合はPDFにも出力が反映されます。</p>
+<p>以下にHTMLを返すプラグインの例を示します。</p>
+<pre>sub inline {
+  my $self = shift;
+  my $wiki = shift;
+  return &quot;&lt;B&gt;簡単なプラグインです。&lt;/B&gt;&quot;;
+}
+</pre>
+<p>以下はWiki形式のテキストを返すプラグインの例です。</p>
+<pre>sub inline {
+  my $self   = shift;
+  my $wiki   = shift;
+  my $parser = shift;
+  return &quot;[[FrontPage]]&quot;;
+}
+</pre>
+<p>インラインプラグインの登録はインストールスクリプト中でWiki#add_inline_pluginメソッドによって行います。第一引数には実際にWikiページを記述する際にプラグインを指定するための文字列、第二引数にはプラグインのクラス名、第三引数にはそのプラグインの返す文字列に応じてHTMLまたはWIKIを指定します。</p>
+<pre>$wiki-&gt;add_inline_plugin(&quot;edit&quot;,&quot;plugin::core::Edit&quot;,&quot;HTML&quot;);
+</pre>
+<h3>パラグラフ</h3>
+<p>パラグラフプラグインはWiki文書中に<span class="error">プラグイン名プラグインは存在しません。</span>で埋め込むことで、特殊な出力を行うプラグインです。インラインプラグインと違って１行にプラグインしか記述できず、Pタグの補完も行われません。テーブルやフォーム、リストなどを出力するプラグインをパラグラフプラグインとして実装します。パラグラフプラグインはparagraphメソッドを実装したクラスでなくてはなりません。</p>
+<p>paragraphメソッドは実装方法自体はインラインプラグインと同様です。以下にHTMLを返す場合の例を示します。Pタグは補完されないので必要に応じてプラグイン側でつけてやる必要があります。</p>
+<pre>sub paragraph {
+  my $self = shift;
+  my $wiki = shift;
+  return &quot;&lt;p&gt;パラグラフプラグインです。&lt;/p&gt;&quot;;
+}
+</pre>
+<p>以下はWiki形式の文字列を返す場合の例です。</p>
+<pre>sub paragraph {
+  my $self   = shift;
+  my $wiki   = shift;
+  return &quot;*[[FrontPage]]\n*[[Help]]\n&quot;;
+}
+</pre>
+<p>パラグラフプラグインの登録はインストールスクリプト中でWiki#add_paragraph_pluginメソッドによって行います。第一引数には実際にWikiページを記述する際にプラグインを指定するための文字列、第二引数にはプラグインのクラス名、第三引数にはそのプラグインの返す文字列に応じてHTMLまたはWIKIを指定します。</p>
+<pre>$wiki-&gt;add_paragraph_plugin(&quot;bbs&quot;,&quot;plugin::bbs::BBS&quot;,&quot;HTML&quot;);
+</pre>
+<h3>ブロック</h3>
+<p>ブロックプラグインは複数行の引数を取ることができるパラグラフプラグインです。以下のようにして使用します。引数3の部分は複数行に渡って記述することができます。</p>
+<pre>{{プラグイン名 引数1,引数2,
+引数3
+}}
+</pre>
+<p>ブロックプラグインではparagraph()メソッドの代わりにblock()メソッドを実装します。複数行の引数が第一引数として、それ以外の引数は第二引数以降に渡されてきます。</p>
+<pre>sub block {
+  my $self = shift;
+  my $wiki = shift;
+  my $text = shift;
+  return &quot;&lt;p&gt;&quot;.Util::escapeHTML($text).&quot;&lt;/p&gt;&quot;;
+}
+</pre>
+<p>パラグラフプラグインの登録はインストールスクリプト中でWiki#add_block_pluginメソッドによって行います。第一引数には実際にWikiページを記述する際にプラグインを指定するための文字列、第二引数にはプラグインのクラス名、第三引数にはそのプラグインの返す文字列に応じてHTMLまたはWIKIを指定します。</p>
+<pre>$wiki-&gt;add_block_plugin(&quot;pre&quot;,&quot;plugin::core::PRE&quot;,&quot;HTML&quot;);
+</pre>
+<h3>エディットフォーム</h3>
+<p>エディットフォームプラグインはページの編集画面に表示されるプラグインです。エディットフォームプラグインはeditformメソッドを実装したクラスでなくてはなりません。editformメソッドは編集画面に表示するHTMLを返却するよう実装します。</p>
+<p>エディットフォームプラグインの登録はインストールスクリプト中でWiki#$wiki-&gt;add_editform_pluginメソッドによって行います。</p>
+<pre>$wiki-&gt;add_editform_plugin(&quot;plugin::core::EditHelper&quot;,0);
+</pre>
+<p>第３引数にはそのプラグインの表示優先度を指定します。この値が大きいほど上位に表示されます。</p>
+<h3>フォーマット</h3>
+<p>フォーマットプラグインはFSWiki以外のWikiの書式での編集を行なうためのプラグインです。フォーマットプラグインは以下のメソッドを実装していなくてはいけません。</p>
+<ul>
+<li>convert_from_fswikiメソッド - FSWikiから各フォーマットへの変換</li>
+<li>convert_from_fswiki_lineメソッド - FSWikiから各フォーマットへの変換（インライン要素のみ）</li>
+<li>convert_to_fswikiメソッド - 各フォーマットからFSWiki形式への変換</li>
+<li>convert_to_fswiki_lineメソッド - 各フォーマットからFSWiki形式への変換（インライン要素のみ）</li>
+</ul>
+<p>フォーマットプラグインはインストールスクリプト中で以下のようにして登録を行ないます。</p>
+<pre>$wiki-&gt;add_format_plugin(&quot;Hiki&quot;,&quot;plugin::format::HikiFormat&quot;);
+</pre>
+<h3>メニューアイテム</h3>
+<p>Wikiオブジェクトのadd_menuメソッドで画面上部のメニューアイテムを追加することができます。</p>
+<pre>$wiki-&gt;add_menu(名称,URL,優先度);
+</pre>
+<p>第３引数にはそのプラグインの表示優先度を指定します。この値が大きいほど左側に表示されます。また、URLを省略するか、空文字列を設定すると無効なメニューが登録されます。既に同じ名前のアイテムが登録されていた場合は上書きされます。</p>
+<h3>管理者メニュー</h3>
+<p>Wikiオブジェクトのadd_admin_menuメソッドで管理者ログイン時のメニューを追加することができます。このメニューが表示されるのは管理者がログインした場合のみです。一般ユーザがログインしても表示されません。また、管理者メニューから呼び出されるアクションハンドラはadd_admin_handlerで登録しておくとログインチェック、権限チェックが自動化されます。</p>
+<pre>$wiki-&gt;add_admin_menu(名称,URL);
+</pre>
+<h2>THANKS</h2>
+<p>FreeStyle Wikiでは以下のライブラリを使用しています。これらについての著作権は原作者が持ちます。有用なライブラリを無償で提供してくださっている作者の皆様に感謝します。</p>
+<dl>
+<dt><a href="http://hp1.jonex.ne.jp/~nakajima.yasushi/">PDFJ</a></dt>
+<dd>PDFの生成にPDFJを使わせていただいています。Pure Perlで実装されており、手軽にPDFを生成することができる素晴らしいライブラリです。</dd>
+</dl>
+<dl>
+<dt><a href="http://search.cpan.org/author/JANPAZ/TeX-Hyphen-0.140/">TeX::Hyphen</a></dt>
+<dd>PDFJで欧文のハイフネーションを行うために使用しているそうです。</dd>
+</dl>
+<dl>
+<dt><a href="http://search.cpan.org/author/NEDKONZ/Algorithm-Diff-1.15/">Algorithm::Diff</a></dt>
+<dd>差分の表示に使用してます。</dd>
+</dl>
+<dl>
+<dt><a href="http://search.cpan.org/author/SAMTREGAR/HTML-Template-2.6/">HTML::Template</a></dt>
+<dd>シンプルなHTMLテンプレートエンジンです。</dd>
+</dl>
+<dl>
+<dt><a href="http://search.cpan.org/author/DANKOGAI/Jcode-0.83/">Jcode</a></dt>
+<dd>3.4.1よりjcode.plの代わりに使用しています。</dd>
+</dl>
+<dl>
+<dt><a href="http://search.cpan.org/author/GAAS/libwww-perl-5.69/">libwww</a></dt>
+<dd>RSSの取得などHTTP通信に使用しています。Active Perlでは不要です。</dd>
+</dl>
+<dl>
+<dt><a href="http://search.cpan.org/author/GBARR/libnet-1.16/">libnet</a></dt>
+<dd>Net::SMTPでのメール送信に使用しています。</dd>
+</dl>
+<dl>
+<dt><a href="http://search.cpan.org/author/GAAS/MIME-Base64-2.20/">MIME::Base64</a></dt>
+<dd>メール送信時のMIMEエンコードに使用しています。Perl 5.8.0以降およびActive Perlでは不要です。</dd>
+</dl>
+<dl>
+<dt><a href="http://search.cpan.org/author/GAAS/URI-1.23/">URI</a></dt>
+<dd>libwwwが内部的に使用しているようです。Active Perlでは不要です。</dd>
+</dl>
+<dl>
+<dt><a href="http://search.cpan.org/author/SHERZODR/CGI-Session-3.94/">CGI::Session</a></dt>
+<dd>ログイン機能のセッション維持に使用しています。</dd>
+</dl>
+<dl>
+<dt><a href="http://search.cpan.org/author/GAAS/Digest-MD5-2.25/">Digest::MD5</a></dt>
+<dd>CGI::Sessionが内部的にセッションIDの生成に使用しています。Perl 5.8.0およびActive Perlでは不要です。</dd>
+</dl>
+<dl>
+<dt><a href="http://search.cpan.org/author/DELTA/Digest-Perl-MD5-1.5/">Digest::Perl::MD5</a></dt>
+<dd>Digest::MD5のPure Perl実装です。Perl 5.8.0およびActive Perlでは不要です。</dd>
+</dl>
+<dl>
+<dt><a href="http://www.tdiary.org/">tDiary</a></dt>
+<dd>突っ込み、スタイル、プラグインなど斬新な機能を多数搭載したRubyによるWeb日記システム。tDiary用のスタイルを使用させていただいてます。</dd>
+</dl>
+<h2>ライセンス</h2>
+<p>FreeStyle WikiはGNU GPLライセンスの元で配布、改変が可能です。FreeStyle Wikiに組み込むプラグインを公開される方はGPLコンパチのライセンスを推奨しますが、その他のライセンスを宣言されても構いません。また、パッチに関しては本体および標準添付のプラグインにあてるものはGPL、プラグインにあてるものはプラグインのライセンスにしたがうものとします。</p>
+<h2>作成者</h2>
+<p>Copyright 2002 - 2007 Naoki Takezoe &lt;takezoe@aa.bb-east.ne.jp&gt;</p>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!--========================================================================-->
+<!-- フッタ -->
+<!--========================================================================-->
+<div class="footer">
+  
+  <!-- 管理者の情報 -->
+  <!--TMPL_IF NAME="OUT_COPYRIGHT"-->
+    Copyright (C) 2002-2007
+    <!--TMPL_IF NAME="ADMIN_MAIL"-->
+      <a href="mailto:<!--TMPL_VAR ESCAPE="HTML" NAME="ADMIN_MAIL"-->">
+        <!--TMPL_VAR ESCAPE="HTML" NAME="ADMIN_NAME"-->
+      </a>
+    <!--TMPL_ELSE-->
+      <!--TMPL_VAR ESCAPE="HTML" NAME="ADMIN_NAME"-->
+    <!--/TMPL_IF-->
+    <br>
+  <!--/TMPL_IF-->
+  
+  <!-- FSWikiのバージョン情報 -->
+  Powered by <a href="http://fswiki.org/">FreeStyleWiki<!--TMPL_VAR NAME="VERSION" ESCAPE="HTML"--></a>
+    with Perl<!--TMPL_VAR NAME="PERL_VERSION"-->
+  <!--TMPL_IF NAME="MOD_PERL"-->
+    &amp; <!--TMPL_VAR NAME="MOD_PERL" ESCAPE="HTML"-->
+  <!--/TMPL_IF-->
+  
+</div>
