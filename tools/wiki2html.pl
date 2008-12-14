@@ -97,6 +97,12 @@ if(index($from,"http://")==0 || index($from,"https://")==0){
 my $buf = "<html>\n".
           "<head>\n".
           "  <title>".Util::escapeHTML($title)."</title>\n";
+if($output eq 'euc'){
+	$buf .= "  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=EUC-JP\">\n";
+} else {
+	$buf .= "  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=Shift_JIS\">\n";
+}
+
 if($css ne ""){
 	$buf .= "  <link rel=\"stylesheet\" type=\"text/css\" href=\"".$css."\">\n";
 }
