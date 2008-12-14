@@ -1,0 +1,22 @@
+<!--=========================================================================-->
+<!-- ページの編集フォーム -->
+<!--=========================================================================-->
+<form class="update" method="post" action="<!--TMPL_VAR NAME="SCRIPT_NAME"-->">
+  <textarea cols="80" rows="20" name="content" class="edit"><!--TMPL_VAR NAME="CONTENT" ESCAPE="HTML"--></textarea>
+  <p>
+    <!--TMPL_IF NAME="EXISTS_PAGE"-->
+    <input type="checkbox" name="sage" value="1" id="sage"
+      <!--TMPL_IF NAME="SAGE"-->checked<!--/TMPL_IF-->
+    ><label for="sage">タイムスタンプを更新しない</label>
+    <!--/TMPL_IF-->
+    <input type="submit"   name="save"         value=" 保 存 ">
+    <input type="submit"   name="preview"      value="プレビュー">
+    <input type="hidden"   name="action"       value="<!--TMPL_VAR NAME="ACTION"-->">
+    <input type="hidden"   name="lastmodified" value="<!--TMPL_VAR NAME="LAST_MODIFIED"-->">
+    <input type="hidden"   name="page"         value="<!--TMPL_VAR NAME="PAGE_NAME" ESCAPE="HTML"-->">
+    <!--TMPL_LOOP NAME="OPTIONAL_PARAMS"-->
+      <input type="hidden" name ="<!--TMPL_VAR NAME="NAME" ESCAPE="HTML"-->"
+                           value="<!--TMPL_VAR NAME="VALUE" ESCAPE="HTML"-->">
+    <!--/TMPL_LOOP-->
+  </p>
+</form>

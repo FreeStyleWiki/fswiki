@@ -1,0 +1,51 @@
+<!--=========================================================================-->
+<!-- 管理画面（スタイル設定） -->
+<!--=========================================================================-->
+
+<h2>スタイル設定</h2>
+
+<h3>サイトテンプレート</h3>
+<p>
+  <select name="site_tmpl_theme">
+  <!--TMPL_LOOP NAME="SITE_TMPL_THEME"-->
+    <option value="<!--TMPL_VAR NAME="VALUE" ESCAPE="HTML"-->"
+            <!--TMPL_IF NAME="SELECT"-->selected<!--/TMPL_IF-->>
+      <!--TMPL_VAR NAME="VALUE" ESCAPE="HTML"-->
+    </option>
+  <!--/TMPL_LOOP-->
+  </select>
+</p>
+
+<h3>テーマ</h3>
+<p>
+  <select name="theme">
+    <option value=""<!--TMPL_IF NAME="NO_THEME"--> selected<!--/TMPL_IF-->>
+      使用しない
+    </option>
+    <!--TMPL_LOOP NAME="THEME"-->
+    <option value="<!--TMPL_VAR NAME="VALUE" ESCAPE="HTML"-->"
+            <!--TMPL_IF NAME="SELECT"-->selected<!--/TMPL_IF-->>
+      <!--TMPL_VAR NAME="VALUE" ESCAPE="HTML"-->
+    </option>
+    <!--/TMPL_LOOP-->
+  </select>
+</p>
+
+<h3>外部スタイルシート</h3>
+<p>
+  外部スタイルシートを使用する場合はURLを入力してください。テーマが選択されている場合はテーマが優先されます。
+</p>
+<p>
+  <input type="text" name="outer_css" size="80" value="<!--TMPL_VAR NAME="OUTER_CSS" ESCAPE="HTML"-->">
+</p>
+
+<h3>ユーザ定義スタイル</h3>
+<p>
+  <textarea name="usercss"
+            cols="60" rows="10"><!--TMPL_VAR NAME="USERCSS" ESCAPE="HTML"--></textarea>
+</p>
+
+<p>
+  <input type="submit" name="SAVE" value="設定を保存">
+  <input type="reset" value="リセット">
+</p>

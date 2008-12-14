@@ -1,0 +1,10 @@
+<!--========================================================================-->
+<!-- ヘッダ（メニューを表示） -->
+<!--========================================================================-->
+<div class="adminmenu">
+  <!--TMPL_LOOP NAME="MENU"-->
+    <span class="adminmenu">
+      <a href="<!--TMPL_VAR NAME="href"-->"<!--TMPL_IF NAME="nofollow"--> rel="nofollow"<!--/TMPL_IF-->><!--TMPL_VAR ESCAPE="HTML" NAME="name"--></a>
+    </span>
+  <!--/TMPL_LOOP-->
+</div>

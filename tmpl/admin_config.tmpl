@@ -1,0 +1,240 @@
+<!--=========================================================================-->
+<!-- 管理画面（環境設定） -->
+<!--=========================================================================-->
+
+<h2>サイト情報</h2>
+
+<h3>サイト名</h3>
+<p><input type="text" name="site_title" size="40"
+          value="<!--TMPL_VAR NAME="SITE_TITLE" ESCAPE="HTML"-->"></p>
+
+<h3>管理者の名前</h3>
+<p><input type="text" name="admin_name" size="40"
+          value="<!--TMPL_VAR NAME="ADMIN_NAME" ESCAPE="HTML"-->"></p>
+
+<h3>管理者のメールアドレス（メール送信用）</h3>
+<p><input type="text" name="admin_mail" size="40"
+          value="<!--TMPL_VAR NAME="ADMIN_MAIL" ESCAPE="HTML"-->">
+カンマで区切って複数記述できます。空欄にしておけば更新通知メールは送信されません。</p>
+
+<h3>管理者のメールアドレス（公開用）</h3>
+<p><input type="text" name="admin_mail_pub" size="40"
+          value="<!--TMPL_VAR NAME="ADMIN_MAIL_PUB" ESCAPE="HTML"-->"></p>
+
+<h3>更新通知メールの設定</h3>
+<p>
+  件名のプレフィックス
+  <input type="text" name="mail_prefix" size="20"
+         value="<!--TMPL_VAR NAME="MAIL_PREFIX" ESCAPE="HTML"-->">
+</p>
+<p>
+  表示する項目：
+  <input type="checkbox" id="mail_id" name="mail_id" value="1"
+         <!--TMPL_IF NAME="MAIL_ID"-->checked<!--/TMPL_IF-->>
+  <label for="mail_id">ユーザID（ログイン時のみ）</label>
+  <input type="checkbox" id="mail_remote_addr" name="mail_remote_addr" value="1"
+         <!--TMPL_IF NAME="MAIL_REMOTE_ADDR"-->checked<!--/TMPL_IF-->>
+  <label for="mail_remote_addr">IPアドレス</label>
+  <input type="checkbox" id="mail_user_agent" name="mail_user_agent" value="1"
+         <!--TMPL_IF NAME="MAIL_USER_AGENT"-->checked<!--/TMPL_IF-->>
+  <label for="mail_user_agent">ユーザエージェント</label>
+  <input type="checkbox" id="mail_diff" name="mail_diff" value="1"
+         <!--TMPL_IF NAME="MAIL_DIFF"-->checked<!--/TMPL_IF-->>
+  <label for="mail_diff">変更の差分</label>
+  <input type="checkbox" id="mail_backup_source" name="mail_backup_source" value="1"
+         <!--TMPL_IF NAME="MAIL_BACKUP_SOURCE"-->checked<!--/TMPL_IF-->>
+  <label for="mail_backup_source">変更前のソース</label>
+  <input type="checkbox" id="mail_modified_source" name="mail_modified_source" value="1"
+         <!--TMPL_IF NAME="MAIL_MODIFIED_SOURCE"-->checked<!--/TMPL_IF-->>
+  <label for="mail_modified_source">変更後のソース</label>
+</p>
+
+<h2>権限による制限</h2>
+
+<h3>ページの閲覧</h3>
+<p>
+  <input type="radio" name="accept_show" value="0" id="accept_show_0"
+         <!--TMPL_IF NAME="ACCEPT_SHOW_0"-->checked<!--/TMPL_IF-->>
+  <label for="accept_show_0">誰でも可能</label>
+  <input type="radio" name="accept_show" value="1" id="accept_show_1"
+         <!--TMPL_IF NAME="ACCEPT_SHOW_1"-->checked<!--/TMPL_IF-->>
+  <label for="accept_show_1">ログインユーザのみ可能</label>
+  <input type="radio" name="accept_show" value="2" id="accept_show_2"
+         <!--TMPL_IF NAME="ACCEPT_SHOW_2"-->checked<!--/TMPL_IF-->>
+  <label for="accept_show_2">管理者のみ可能</label>
+</p>
+
+<h3>ページの作成・編集</h3>
+<p>
+  <input type="radio" name="accept_edit" value="1" id="accept_edit_1"
+         <!--TMPL_IF NAME="ACCEPT_EDIT_1"-->checked<!--/TMPL_IF-->>
+  <label for="accept_edit_1">誰でも可能</label>
+  <input type="radio" name="accept_edit" value="0" id="accept_edit_0"
+         <!--TMPL_IF NAME="ACCEPT_EDIT_0"-->checked<!--/TMPL_IF-->>
+  <label for="accept_edit_0">ログインユーザのみ可能</label>
+  <input type="radio" name="accept_edit" value="2" id="accept_edit_2"
+         <!--TMPL_IF NAME="ACCEPT_EDIT_2"-->checked<!--/TMPL_IF-->>
+  <label for="accept_edit_2">管理者のみ可能</label>
+</p>
+
+<h3>ページの参照権限のデフォルト値</h3>
+<p>
+  <input type="radio" name="refer_level" value="0" id="refer_mode_0"
+         <!--TMPL_IF NAME="REFER_MODE_0"-->checked<!--/TMPL_IF-->>
+  <label for="refer_mode_0">誰でも可能</label>
+  <input type="radio" name="refer_level" value="1" id="refer_mode_1"
+         <!--TMPL_IF NAME="REFER_MODE_1"-->checked<!--/TMPL_IF-->>
+  <label for="refer_mode_1">ログインユーザのみ可能</label>
+  <input type="radio" name="refer_level" value="2" id="refer_mode_2"
+         <!--TMPL_IF NAME="REFER_MODE_2"-->checked<!--/TMPL_IF-->>
+  <label for="refer_mode_2">管理者のみ可能</label>
+</p>
+
+<h3>添付ファイルの削除</h3>
+<p>
+  <input type="radio" name="accept_attach_delete" value="1" id="accept_attach_delete_1"
+         <!--TMPL_IF NAME="ACCEPT_ATTACH_DELETE_1"--> checked<!--/TMPL_IF-->>
+  <label for="accept_attach_delete_1">誰でも可能</label>
+  <input type="radio" name="accept_attach_delete" value="0" id="accept_attach_delete_0"
+         <!--TMPL_IF NAME="ACCEPT_ATTACH_DELETE_0"-->checked<!--/TMPL_IF-->>
+  <label for="accept_attach_delete_0">ログインユーザのみ可能</label>
+  <input type="radio" name="accept_attach_delete" value="2" id="accept_attach_delete_2"
+         <!--TMPL_IF NAME="ACCEPT_ATTACH_DELETE_2"-->checked<!--/TMPL_IF-->>
+  <label for="accept_attach_delete_2">管理者のみ可能</label>
+</p>
+<h3>添付ファイルの上書き</h3>
+<p>
+  <input type="radio" name="accept_attach_update" value="0" id="accept_attach_update_0"
+         <!--TMPL_IF NAME="ACCEPT_ATTACH_UPDATE_0"--> checked<!--/TMPL_IF-->>
+  <label for="accept_attach_update_0">誰でも可能</label>
+  <input type="radio" name="accept_attach_update" value="1" id="accept_attach_update_1"
+         <!--TMPL_IF NAME="ACCEPT_ATTACH_UPDATE_1"-->checked<!--/TMPL_IF-->>
+  <label for="accept_attach_update_1">ログインユーザのみ可能</label>
+  <input type="radio" name="accept_attach_update" value="2" id="accept_attach_update_2"
+         <!--TMPL_IF NAME="ACCEPT_ATTACH_UPDATE_2"-->checked<!--/TMPL_IF-->>
+  <label for="accept_attach_update_2">管理者のみ可能</label>
+</p>
+<h3>ユーザ登録</h3>
+<p>
+  <input type="checkbox" name="accept_user_register" value="1" id="accept_user_register"
+         <!--TMPL_IF NAME="ACCEPT_USER_REGISTER"-->checked<!--/TMPL_IF-->>
+  <label for="accept_user_register">ユーザ登録を許可する（一般ユーザとして登録されます）</label>
+</p>
+
+<h2>動作設定</h2>
+
+<h3>ページ一覧の表示件数</h3>
+<p>
+  <input type="text" name="pagelist" size="4"
+         value="<!--TMPL_VAR NAME="PAGELIST" ESCAPE="HTML"-->">
+  0を指定すると全て表示されます。
+</p>
+
+<h3>デフォルトの書式</h3>
+<p>
+  <select name="site_wiki_format">
+  <!--TMPL_LOOP NAME="SITE_WIKI_FORMAT"-->
+    <option value="<!--TMPL_VAR NAME="VALUE" ESCAPE="HTML"-->"
+            <!--TMPL_IF NAME="SELECT"-->selected<!--/TMPL_IF-->>
+      <!--TMPL_VAR NAME="VALUE" ESCAPE="HTML"-->
+    </option>
+  <!--/TMPL_LOOP-->
+  </select>
+</p>
+
+<h3>改行の処理</h3>
+<p>
+  <input type="radio" name="br_mode" value="0" id="br_mode_0"
+         <!--TMPL_UNLESS NAME="BR_MODE"-->checked<!--/TMPL_UNLESS-->>
+  <label for="br_mode_0">無視する</label>
+  <input type="radio" name="br_mode" value="1" id="br_mode_1"
+         <!--TMPL_IF NAME="BR_MODE"-->checked<!--/TMPL_IF-->>
+  <label for="br_mode_1">BRタグに変換する</label>
+</p>
+
+<h3>ページの自動リンク</h3>
+<p>
+  <input type="radio" name="auto_keyword_page" value="1" id="auto_keyword_page_1"
+         <!--TMPL_IF NAME="AUTO_KEYWORD_PAGE"-->checked<!--/TMPL_IF-->>
+  <label for="auto_keyword_page_1">自動でリンクする</label>
+  <input type="radio" name="auto_keyword_page" value="0" id="auto_keyword_page_0"
+         <!--TMPL_UNLESS NAME="AUTO_KEYWORD_PAGE"-->checked<!--/TMPL_UNLESS-->>
+  <label for="auto_keyword_page_0">自動でリンクしない</label>
+</p>
+<p>
+  <input type="checkbox" name="keyword_slash_page" value="1" id="keyword_slash_page"
+         <!--TMPL_IF NAME="KEYWORD_SLASH_PAGE"-->checked<!--/TMPL_IF-->>
+  <label for="keyword_slash_page">自動リンクするに設定した場合/を含むページをリンクする</label>
+</p>
+
+<h3>パート編集</h3>
+<p>この機能を利用するには、キャッシュ機能をOFFにする必要があります。</p>
+<p>
+  <input type="checkbox" name="partedit" value="1" id="partedit"
+         <!--TMPL_IF NAME="PART_EDIT"-->checked<!--/TMPL_IF-->>
+  <label for="partedit">パート編集モードを有効にする</label>
+  
+  <input type="checkbox" name="partlink" value="1" id="partlink"
+         <!--TMPL_IF NAME="PART_LINK"-->checked<!--/TMPL_IF-->>
+  <label for="partlink">パートごとに前後のパート及びページ頭へのリンクを表示する</label>
+</p>
+
+<h3>WikiName</h3>
+<p>
+  <input type="radio" name="wikiname" value="0" id="wikiname_0"
+         <!--TMPL_UNLESS NAME="WIKINAME"-->checked<!--/TMPL_UNLESS-->>
+  <label for="wikiname_0">WikiNameを使用しない</label>
+  <input type="radio" name="wikiname" value="1" id="wikiname_1"
+         <!--TMPL_IF NAME="WIKINAME"-->checked<!--/TMPL_IF-->>
+  <label for="wikiname_1">WikiNameを使用する</label>
+</p>
+
+<h3>セッションタイムアウト</h3>
+<p>
+  <input type="text" name="session_limit" size="4" value="<!--TMPL_VAR NAME="SESSION_LIMIT" ESCAPE="HTML"-->"> 分
+</p>
+
+<h3>出力するRSSのバージョン</h3>
+<p>
+  <input type="radio" name="rss_version" value="0" id="rss_version_0"
+         <!--TMPL_UNLESS NAME="RSS_VERSION"-->checked<!--/TMPL_UNLESS-->>
+  <label for="rss_version_0">0.91</label>
+  <input type="radio" name="rss_version" value="1" id="rss_version_1"
+         <!--TMPL_IF NAME="RSS_VERSION"-->checked<!--/TMPL_IF-->>
+  <label for="rss_version_1">1.0</label>
+</p>
+
+<h3>URLの処理</h3>
+<p>
+  <input type="radio" name="open_new_window" value="0" id="open_new_window_0"
+         <!--TMPL_UNLESS NAME="OPEN_NEW_WINDOW"-->checked<!--/TMPL_UNLESS-->>
+  <label for="open_new_window_0">外部URLをウィンドウ内で開く</label>
+  <input type="radio" name="open_new_window" value="1" id="open_new_window_1"
+         <!--TMPL_IF NAME="OPEN_NEW_WINDOW"-->checked<!--/TMPL_IF-->>
+  <label for="open_new_window_1">外部URLを別ウィンドウで開く</label>
+</p>
+<p>
+  <input type="checkbox" name="inside_same_window" value="1" id="inside_same_window"
+         <!--TMPL_IF NAME="INSIDE_SAME_WINDOW"-->checked<!--/TMPL_IF-->>
+  <label for="inside_same_window">スキーム（http://等）が指定されていないリンクは同じウィンドウで開く</label>
+</p>
+<p>
+  <input type="checkbox" name="display_image" value="1" id="display_image"
+         <!--TMPL_IF NAME="DISPLAY_IMAGE"-->checked<!--/TMPL_IF-->>
+  <label for="display_image">画像のURLをimgタグで表示する</label>
+</p>
+
+<h3>リダイレクト時の処理</h3>
+<p>
+  <input type="radio" name="redirect" value="0" id="redirect_0"
+         <!--TMPL_UNLESS NAME="REDIRECT"-->checked<!--/TMPL_UNLESS-->>
+  <label for="redirect_0">METAタグでリダイレクト</label>
+  <input type="radio" name="redirect" value="1" id="redirect_1"
+         <!--TMPL_IF NAME="REDIRECT"-->checked<!--/TMPL_IF-->>
+  <label for="redirect_1">Locationヘッダでリダイレクト</label>
+</p>
+
+<p>
+  <input type="submit" name="SAVE" value="設定を保存">
+  <input type="reset" value="リセット">
+</p>

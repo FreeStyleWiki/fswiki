@@ -1,0 +1,20 @@
+<h2>IDとパスワードを入力してください</h2>
+<form action="<!--TMPL_VAR NAME="URL"-->" method="POST">
+  <table>
+    <tr>
+      <th>ID</th>
+      <td><input type="text" name="id"></td>
+    </tr>
+    <tr>
+      <th>Pass</th>
+      <td><input type="password" name="pass"></td>
+    </tr>
+  </table><br>
+  <input type="submit" name="login"  value="ログイン">
+  <input type="hidden" name="action" value="LOGIN">
+</form>
+<!--TMPL_IF NAME="ACCEPT_USER_REGISTER"-->
+  <p>
+    <a href="<!--TMPL_VAR NAME="URL"-->?action=USERREGISTER">新しくユーザ情報を登録</a>
+  </p>
+<!--/TMPL_IF-->

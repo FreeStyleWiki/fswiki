@@ -1,0 +1,107 @@
+######################################################################
+#
+# FreeStyle Wiki 基本設定
+#
+######################################################################
+# 設置したサーバ
+server_host = 
+
+# データファイルを保存するディレクトリ
+data_dir = ./data
+
+# バックアップファイルを保存するディレクトリ
+backup_dir = ./backup
+
+# 添付ファイルを保存するディレクトリ
+attach_dir = ./attach
+
+# PDFを出力するディレクトリ
+pdf_dir = ./pdf
+
+# テンプレートを配置するディレクトリ
+tmpl_dir = ./tmpl
+
+# ログファイルを出力するディレクトリ
+log_dir = ./log
+
+# テーマを格納するディレクトリ
+theme_dir = ./theme
+
+# テーマを参照するためのURI
+theme_uri = ./theme
+
+# 設定ファイルを格納するディレクトリ
+config_dir = ./config
+
+# プラグインを格納するディレクトリ
+plugin_dir = .
+
+# sendmailのパス
+send_mail = 
+
+# SMTPサーバ（sendmailが設定されている場合はそちらを優先します）
+smtp_server = 
+
+# タイムゾーン
+#time_zone = GMT-0
+time_zone = JST-9
+
+# アクセスログファイルのファイル名
+access_log_file = access.log
+
+# 添付ファイル削除のログファイル
+attach_log_file = attach.log
+
+# 凍結用ファイルのパス
+freeze_file = freeze.log
+
+# ダウンロード数カウント用のログファイル
+download_count_file = download_count.log
+
+# 設定ファイルのファイル名
+config_file  = config.dat
+
+# ユーザ定義スタイルのファイル名
+usercss_file = usercss.dat
+
+# ユーザ情報のファイル名
+userdat_file = user.dat
+
+# プラグイン情報のファイル名
+plugin_file = plugin.dat
+
+# MIMEタイプ情報のファイル名
+mime_file = mime.dat
+
+# WikiFarmの設定ファイル名
+farmconf_file = farmconf.dat
+
+# CGIスクリプトのファイル名
+script_name = wiki.cgi
+
+# ストレージのクラス名
+storage = Wiki::DefaultStorage
+
+# バックアップ世代数（0だと無制限）
+backup = 1
+
+# トップページのページ名
+frontpage = FrontPage
+
+# POSTメソッドの最大サイズ（-1だと無制限）
+post_max = -1
+
+#=====================================================================
+# プロキシサーバを使用する場合
+#=====================================================================
+# プロキシサーバのホスト名
+proxy_host = 
+
+# プロキシのポート番号
+proxy_port = 
+
+# プロキシ認証のユーザ名
+proxy_user = 
+
+# プロキシ認証のパスワード
+proxy_pass = 

@@ -1,0 +1,274 @@
+@charset "euc-jp";
+
+body {
+	background-color: #FFFFFF;
+	color						: #000000;
+	font-size				: 90%;
+}
+
+div.adminmenu {
+	text-align		 : right;
+	padding-bottom : 5px;
+	margin-bottom	 : 5px;
+	border-bottom	 : #AABBFF 1px solid;
+	font-size			 : 80%;
+}
+
+.footer {
+	border-top	: #AABBFF 1px solid;
+	margin-top	: 20px;
+	padding-top : 5px;
+	text-align	: right;
+	font-size		: 80%;
+	font-style	: italic;
+}
+
+hr {
+	border: #AABBFF 1px dotted;
+}
+
+pre {
+	border			: #888888 1px solid;
+	padding			: 4px;
+	margin-left : 20px;
+}
+
+blockquote {
+	border			: #888888 1px solid;
+	padding			: 4px;
+	margin-left : 20px;
+	font-style	: italic;
+}
+
+h1 {
+	text-align			 : right;
+	background-color : #FFFFFF;
+	font-family			 : Verdana,Arial,Helvetica,sans-serif;
+}
+
+h2 {
+	font-family				: Verdana,Arial,Helvetica,sans-serif;
+	padding-left			: 4pt;
+	margin-bottom			: 5px;
+	color							: #444488;
+	border-top				: 2px solid #AABBFF;
+	border-bottom			: 4px double #AABBFF;
+	margin-bottom			: 10px;
+	background-image	: url(day3.png);
+	background-repeat : repeat-x;
+	font-size					: 15pt;
+}
+
+h3 {
+	border-top			: #AABBFF 1px solid;
+	border-bottom		: #AABBFF 2px solid;
+	font-family			: Verdana,Arial,Helvetica,sans-serif;
+	padding-left		: 5pt;
+	margin-bottom		: 5px;
+	color						: #444488;
+}
+
+h4 {
+	border-bottom		: #AABBFF 1px solid;
+	padding-left		: 5px;
+	font-family			: Verdana,Arial,Helvetica,sans-serif;
+	margin-bottom		: 10px;
+	color						: #444488;
+}
+
+div.body {
+	padding-left : 5px;
+}
+
+div.body p {
+/*	text-indent		: 10px;*/
+	line-height		: 120%;
+	margin-top		: 10px;
+	margin-bottom : 20px;
+}
+
+div.body blockquote p {
+	margin-top		 : 0px;
+	margin-bottom	 : 0px;
+	text-indent		 : 0px;
+}
+
+table {
+	border : #888888 1px solid;
+}
+
+th {
+	border : #888888 1px solid;
+	background-color : #DDDDFF;
+}
+
+td {
+	border : #888888 1px solid;
+}
+
+A:link { 
+	color						 : #4444FF;
+	text-decoration	 : none;
+}
+
+A:visited {
+	color						 : #4444FF;
+	text-decoration	 : none;
+}
+
+A:hover {
+	color						: #FF4444;
+	text-decoration : underline;
+}
+
+dt {
+	border-bottom : #AABBFF 1px dotted;
+	margin-bottom : 5px;
+	font-weight		: bold;
+}
+
+dd {
+	margin-left		: 20pt;
+	margin-bottom : 5pt;
+}
+
+div.main {
+	margin-left		: 150px;
+	color					: #003344;
+}
+
+div.sidebar {
+	position						: absolute;
+	top									: 0px;
+	left								: 0px;
+	width								: 150px;
+	font-size						: x-small;
+	padding							: 2pt;
+	border-right				: #AABBFF 1px solid;
+	border-bottom				: #AABBFF 1px solid;
+	color								: #000000;
+	background-color		: #FFFFFF;
+	background-image		: url(day2.png);
+	background-position : left;
+	background-repeat		: repeat-y;
+	word-break					: break-all;
+}
+
+div.comment {
+	margin-top			 : 10px;
+	margin-bottom		 : 10px;
+	border					 : #AABBFF 1px solid;
+	font-size				 : 80%;
+}
+
+div.comment p {
+	margin-top			: 5pt;
+	margin-bottom		: 5pt;
+}
+
+div.sidebar ul,div.sidebar li {
+	padding-left : 0pt;
+	margin-left	 : 7pt;
+}
+
+ul, li {
+	padding-left : 0pt;
+	margin-left	 : 7pt;
+}
+
+div.sidebar h2,div.sidebar h3,div.sidebar h4 {
+	margin-top : 0px;
+}
+
+
+/*
+テーブルの設定
+*/
+div.section table {
+	margin: 0.5em 1em 0.5em 2em;
+	border				: #AABBFF 1px solid;
+	border-collapse: collapse;
+}
+
+div.section th, div.section td {
+	padding: 2px 10px;
+	border				: #AABBFF 1px solid;
+}
+
+/*
+ いくつかのメジャーなプラグイン対応
+ */
+
+/* calendar2 */
+table.calendar {
+	font-size: x-small;
+	line-height: 110%;
+	border-style: solid;
+	border-color: #aaf;
+	border-width: 1px;
+}
+
+table.calendar td {
+	margin: 0px;
+	text-align: right;
+	padding: 0px;
+	margin: 0px;
+}
+
+table.calendar td.calendar-prev-month, 
+table.calendar td.calendar-current-month, 
+table.calendar td.calendar-next-month {
+	text-align: center;
+}
+
+.calendar-sunday {
+	color: #f00;
+}
+
+.calendar-saturday {
+	color: #00f;
+}
+
+.calendar-weekday {
+	color: #000;
+}
+
+.calendar-prev-month, .calendar-current-month, .calendar-next-month,
+.calendar-sunday, .calendar-weekday, .calendar-saturday {
+	background-color : #88AAFF;
+}
+
+/* recent_list */
+/*
+div.recentsubtitles {
+	font-size: 90%;
+	margin-top: 0px;
+	margin-bottom: 1em;
+	margin-left: 1em;
+}
+*/
+
+/* footnote */
+div.body span.footnote {
+	vertical-align: super;
+	font-size: 70%;
+}
+
+div.footnote {
+	font-size: 90%;
+	border-style: solid;
+	border-color: #ddf;
+	border-width: 1px 0px 0px 0px;
+	padding: 0em;
+	margin-left: 3em;
+}
+
+p.footnote {
+	margin: 0.5em;
+	padding: 0em;
+}
+
+div.body p {
+	text-indent		: 0px;
+}
+
