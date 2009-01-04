@@ -1,6 +1,6 @@
 #####################################################################
 #
-# 指定日以降に更新されたファイルを抽出するスクリプト
+# ????????????????????X????
 #
 #####################################################################
 use File::Path;
@@ -19,11 +19,11 @@ $date = int($date);
 
 if($dir ne ""){
 	if(-e $dir){
-		print "$dirディレクトリを削除します。\n";
+		print "$dir????????????B\n";
 		rmtree($dir);
 	}
 	if(-e "$dir.zip"){
-		print "$dir.zipを削除します。\n";
+		print "$dir.zip??????B\n";
 		unlink "$dir.zip";
 	}
 }
@@ -33,24 +33,24 @@ $find_flag = 0;
 
 if($dir ne ""){
 	if($find_flag == 1){
-		print "圧縮ファイルを作成します。\n";
+		print "??t??????????\n";
 		system("zip $dir.zip -r $dir");
 	}
 
 }
 
 #====================================================================
-# ヘルプを表示
+# ?????示
 #====================================================================
 sub print_help {
-	print "指定日付以降に更新されたファイルを抽出し、アーカイブを作成します。\n";
+	print "????????????????????A????????????\n";
 	print "\n";
-	print "perl update.pl YYYY-MM-DD [出力先ディレクトリ名]\n";
-	print "  ディレクトリ名を省略すると該当ファイル名を画面に表示して終了します。\n";
+	print "perl update.pl YYYY-MM-DD [???f??????]\n";
+	print "  ?????????????Y???????????示???????B\n";
 }
 
 #====================================================================
-# ディレクトリを検索
+# ?????????
 #====================================================================
 sub search_dir {
 	my $date = shift;
@@ -77,26 +77,26 @@ sub search_dir {
 		if(-d $entry){
 			&search_dir($date,$entry,$to);
 		} else {
-			# ファイルの更新時刻をチェック
+			# ??????????????
 			my @status = stat($entry);
 			my ($sec,$min,$hour,$mday,$mon,$year)=localtime($status[9]);
 			my $date_str = sprintf("%04d%02d%02d",$year+1900,$mon+1,$mday);
 			
 			if(int($date_str) >= $date){
 				print $entry."\n";
-				# ディレクトリが指定されていればディレクトリにコピー
+				# ?????????????????????????
 				if($to ne ""){
-					# ちょっとこのへんキタナイ・・・
+					# ???????????????
 					my $path = $dir;
 					$path =~ s/^\.//;
 					my $copydir = "$to$path";
 					unless(-e $copydir){
-						mkpath($copydir) or die "$copydirの作成に失敗しました。";
+						mkpath($copydir) or die "$copydir????失??????";
 					}
 					
 					my $name = $entry;
 					$name =~ s/^(.*?\/)*//g;
-					copy($entry,"$copydir/$name") or die "$copydir/$nameのコピーに失敗しました。";
+					copy($entry,"$copydir/$name") or die "$copydir/$name?????失??????";
 					
 					$find_flag = 1;
 				}
