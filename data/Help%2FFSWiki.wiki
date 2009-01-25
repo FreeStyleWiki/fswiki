@@ -63,10 +63,14 @@
  *[Google|http://www.google.co.jp/]
  *[[FrontPage]]
  *[[トップ|FrontPage]]
+ *mailto:foo@xxx.dom
+ *[メールはこちら|mailto:foo@xxx.dom?subject=TEST&body=TESTMAIL]
 *http://www.yahoo.co.jp/
 *[Google|http://www.google.co.jp/]
 *[[FrontPage]]
 *[[トップ|FrontPage]]
+*mailto:foo@xxx.dom
+*[メールはこちら|mailto:foo@xxx.dom?subject=TEST&body=TESTMAIL]
 
 !!!テーブル
 CSVはテーブルになります。１行目がヘッダになります。
