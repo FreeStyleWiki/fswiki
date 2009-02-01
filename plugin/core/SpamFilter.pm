@@ -89,7 +89,7 @@ sub RULE_MULTI_URL {
 # USER-AGENTなしの場合に保存を拒否するルール
 #==============================================================================
 sub RULE_NO_USERAGENT {
-	return unless($ENV{'HTTP_USER_AGENT'} eq '');
+	return ($ENV{'HTTP_USER_AGENT'} ne '');
 }
 
 1;
