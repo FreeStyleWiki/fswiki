@@ -34,9 +34,9 @@ sub do_action {
 	if($name eq ""){
 		$name = "名無しさん";
 	} else {
-		# post_nameというキーでクッキーをセットする
+		# fswiki_post_nameというキーでクッキーをセットする
 		my $path   = &Util::cookie_path($wiki);
-		my $cookie = $cgi->cookie(-name=>'post_name',-value=>$name,-expires=>'+1M',-path=>$path);
+		my $cookie = $cgi->cookie(-name=>'fswiki_post_name',-value=>Util::url_encode($name),-expires=>'+1M',-path=>$path);
 		print "Set-Cookie: ",$cookie->as_string,"\n";
 	}
 	

@@ -70,7 +70,7 @@ sub paragraph {
 	                               die_on_bad_params=>0);
 	
 	# 名前を取得
-	my $postname = $cgi->cookie(-name=>'post_name');
+	my $postname = Util::url_decode($cgi->cookie(-name=>'fswiki_post_name'));
 	if($postname eq ''){
 		my $login = $wiki->get_login_info();
 		if(defined($login)){

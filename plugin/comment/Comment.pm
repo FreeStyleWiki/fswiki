@@ -50,7 +50,7 @@ sub paragraph {
 	}
 	
 	# 名前を取得
-	my $name = $cgi->cookie(-name=>'post_name');
+	my $name = Util::url_decode($cgi->cookie(-name=>'fswiki_post_name'));
 	if($name eq ''){
 		my $login = $wiki->get_login_info();
 		if(defined($login)){
