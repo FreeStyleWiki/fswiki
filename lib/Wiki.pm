@@ -1107,6 +1107,42 @@ sub get_page_level {
 
 #==============================================================================
 # <p>
+# 現在のユーザ権限で閲覧可能なページレベルの上限値を求めます。
+# </p>
+# <pre>
+# my $can_show_max = $wiki-&gt;_get_can_show_max();
+# </pre>
+#==============================================================================
+sub _get_can_show_max {
+    my $self = shift;
+
+    # 「閲覧可能な page level の上限値」が既知ならば、それを返却。
+    if (exists $self->{'can_show_max'}) {
+        return $self->{'can_show_max'};
+    }
+
+    # Wiki 全体の閲覧権限の設定値と、閲覧者のユーザ権限レベルを求める。
+    my $accept_show = $self->config('accept_show'); # Wiki 全体の閲覧権限
+    my $login_user  = $self->get_login_info();      # 現在の login 情報
+    my $user_level                                  # ユーザ権限レベル
+        = (not defined $login_user)  ? 0            #   非ログインユーザ
+        : ($login_user->{type} != 0) ? 1            #   ログインユーザ
+        :                              2;           #   管理者
+
+    # Wiki 全体の閲覧権限に達しているユーザなら、
+    if ($user_level >= $accept_show) {
+
+        # 「閲覧可能な page level 上限値」は、ユーザ権限レベルに等しい。
+        return $self->{'can_show_max'} = $user_level;
+    }
+
+    # Wiki 全体の閲覧権限に達していないユーザなので、
+    # 「閲覧可能な page level 上限値」は -1。すなわち、全ページ閲覧不可。
+    return $self->{'can_show_max'} = -1;
+}
+
+#==============================================================================
+# <p>
 # ページが参照可能かどうかを取得します。
 # </p>
 # <pre>
@@ -1118,23 +1154,15 @@ sub get_page_level {
 # </pre>
 #==============================================================================
 sub can_show {
-	my $self = shift;
-	my $page = shift;
-	my $login = $self->get_login_info();
-	my $level = $self->get_page_level($page);
-	
-	if($self->config('accept_show')==1 && !defined($login)){
-		return 0;
-	}
-	if($self->config('accept_show')==2 && (!defined($login) || $login->{type}!=0)){
-		return 0;
-	}
-	if($level==1 && !defined($login)){
-		return 0;
-	} elsif($level==2 && (!defined($login) || $login->{type}!=0)){
-		return 0;
-	}
-	return 1;
+    my ($self, $page) = @_;
+
+    #「閲覧可能 page level 上限」が未知ならば、求める。
+    if (not exists $self->{'can_show_max'}) {
+        $self->_get_can_show_max();
+    }
+
+    # page level が、閲覧可能 page level 上限以下なら真を返す。
+    return ($self->get_page_level($page) <= $self->{'can_show_max'});
 }
 
 ###############################################################################
