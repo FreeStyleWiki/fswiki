@@ -9,7 +9,12 @@ use strict;
 sub install {
 	my $wiki = shift;
 	
-	$wiki->add_menu("ログイン",$wiki->create_url({action=>"LOGIN"}),0);
+	my $login = $wiki->get_login_info();
+	if(defined($login)){
+		$wiki->add_menu("管理",$wiki->create_url({action=>"LOGIN"}),0);
+	} else {
+		$wiki->add_menu("ログイン",$wiki->create_url({action=>"LOGIN"}),0);
+	}
 	$wiki->add_handler("LOGIN","plugin::admin::Login");
 	
 	$wiki->add_admin_menu("環境設定"         ,$wiki->create_url({action=>"ADMINCONFIG"}),999,

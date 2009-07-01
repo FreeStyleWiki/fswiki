@@ -109,7 +109,7 @@ sub logout {
 	my $cookie = CGI::Cookie->new(-name=>'CGISESSID',-value=>'',-expires=>-1,-path=>$path);
 	print "Set-Cookie: ".$cookie->as_string()."\n";
 	
-	return "ログアウトしました。";
+	$wiki->redirectURL($wiki->create_url({action=>"LOGIN"}));
 }
 
 #==============================================================================
