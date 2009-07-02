@@ -12,7 +12,7 @@ use Wiki::DefaultStorage;
 use Wiki::HTMLParser;
 #use Wiki::CacheParser;
 use vars qw($VERSION $DEBUG);
-$VERSION = '3.6.3';
+$VERSION = '3.6.4';
 $DEBUG   = 0;
 #==============================================================================
 # <p>
