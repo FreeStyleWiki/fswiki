@@ -206,7 +206,7 @@ sub parse {
 				$line .= " ";
 			}
 			my @spl = map {/^"(.*)"$/ ? scalar($_ = $1, s/\"\"/\"/g, $_) : $_}
-			              ($line =~ /,\s*(\"[^\"]*(?:\"\"[^\"]*)*\"|[^,]*)/g);
+						  ($line =~ /,\s*(\"[^\"]*(?:\"\"[^\"]*)*\"|[^,]*)/g);
 			my @array;
 			foreach my $value (@spl){
 				my @cell = $self->parse_line($value);
@@ -260,166 +260,249 @@ sub multi_explanation {
 # </p>
 #===============================================================================
 sub parse_line {
-	my $self   = shift;
-	my $source = shift;
-	my @array  = ();
-		
-	# プラグイン
-	if($source =~ /{{/){
-		my $pre  = $`;
-		my $post = $';
-		if($pre ne ""){ push(@array,$self->parse_line($pre)); }
-		my $plugin = $self->{wiki}->parse_inline_plugin($post);
-		unless($plugin){
-			push @array,'{{';
-			push @array,$self->parse_line($post);
-		} else {
-			my $info   = $self->{wiki}->get_plugin_info($plugin->{command});
-			if($info->{TYPE} eq "inline"){
-				push @array,$self->plugin($plugin);
-			} else {
-				push @array,$self->parse_line("<<".$plugin->{command}."プラグインは存在しません。>>");
-			}
-			if($post ne ""){ push(@array,$self->parse_line($plugin->{post})); }
-		}
-		
-	# InterWikiName
-	} elsif($self->{interwiki}->exists_interwiki($source)){
-		my $pre   = $self->{interwiki}->{g_pre};
-		my $post  = $self->{interwiki}->{g_post};
-		my $label = $self->{interwiki}->{g_label};
-		my $url   = $self->{interwiki}->{g_url};
-		if($pre ne ""){ push(@array,$self->parse_line($pre)); }
-		push @array,$self->url_anchor($url,$label);
-		if($post ne ""){ push(@array,$self->parse_line($post)); }
-	
-	# ページ別名リンク
-	} elsif($source =~ /\[\[([^\[]+?)\|([^\|\[]+?)\]\]/){
-		my $pre   = $`;
-		my $post  = $';
-		my $label = $1;
-		my $page  = $2;
-		if($pre ne ""){ push(@array,$self->parse_line($pre)); }
-		push @array,$self->wiki_anchor($page,$label);
-		if($post ne ""){ push(@array,$self->parse_line($post)); }
+	my ($self, $source) = @_;
 
-	# URL別名リンク
-	} elsif($source =~ /\[([^\[]+?)\|((http|https|ftp|mailto):[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!\$&=:;\*#\@']*)\]/
-	    ||  $source =~ /\[([^\[]+?)\|(file:[^\[\]]*)\]/
-	    ||  $source =~ /\[([^\[]+?)\|((\/|\.\/|\.\.\/)+[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!\$&=:;\*#\@']*)\]/){
-		my $pre   = $`;
-		my $post  = $';
-		my $label = $1;
-		my $url   = $2;
-		if($pre ne ""){ push(@array,$self->parse_line($pre)); }
-		if(index($url,'"') >= 0 || index($url,'><') >= 0 || index($url, 'javascript:') >= 0){
-			push @array,$self->parse_line("<<不正なリンクです。>>");
-		} else {
-			push @array,$self->url_anchor($url,$label);
+	return () if (not defined $source);
+
+	my @array = ();
+	my $pre   = q{};
+	my $parsed;
+
+	# $source が空になるまで繰り返す。
+	SOURCE:
+	while ($source ne q{}) {
+
+		# どのインライン Wiki 書式の先頭にも match しないなら、
+		if (not $source
+			=~ /^(.*?)((?:{{|\[\[?|https?:|mailto:|f(?:tp:|ile:)|'''?|==|__|<<).*)$/
+			)
+		{
+
+			# キーワード検索・置換処理のみ実施して終了。
+			push @array, $self->_parse_line_keyword($pre . $source);
+			return @array;
 		}
-		if($post ne ""){ push(@array,$self->parse_line($post)); }
-		
-	# URLリンク
-	} elsif($source =~ /(http|https|ftp|mailto):[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!\$&=:;\*#\@']*/
-	    ||  $source =~ /(file:[^\[\]]*)/){
-		my $pre   = $`;
-		my $post  = $';
-		my $url = $&;
-		if($pre ne ""){ push(@array,$self->parse_line($pre)); }
-		if(index($url,'"') >= 0 || index($url,'><') >= 0 || index($url, 'javascript:') >= 0){
-			push @array,$self->parse_line("<<不正なリンクです。>>");
-		} else {
-			push @array,$self->url_anchor($url);
+
+		$pre .= $1;	# match しなかった先頭部分は溜めておいて後で処理
+		$source = $2;  # match 部分。この後、詳細 match を試みる。
+		$parsed = q{};
+
+		# プラグイン
+		if ($source =~ /^{{/) {
+
+			# もし $pre が溜まっているなら、キーワードの処理を実施。
+			push @array, $self->_parse_line_keyword($pre) if ($pre ne q{});
+
+			# オリジナルの Wiki::Parser::parse_line() に処理をお任せ。
+			# (プラグインの処理は、オリジナルでも最優先の処理なので可能)
+			push @array, $self->SUPER::parse_line($source);
+
+			# $self->orig_parse_line() で $source は全て処理済なので終了
+			return @array;
 		}
-		if($post ne ""){ push(@array,$self->parse_line($post)); }
-		
-	# ページリンク
-	} elsif($source =~ /\[\[([^\|]+?)\]\]/){
-		my $pre   = $`;
-		my $post  = $';
-		my $page = $1;
-		if($pre ne ""){ push(@array,$self->parse_line($pre)); }
-		push @array,$self->wiki_anchor($page);
-		if($post ne ""){ push(@array,$self->parse_line($post)); }
-	
-	# 任意のURLリンク
-	} elsif($source =~ /\[([^\[]+?)\|(.+?)\]/){
-		my $pre   = $`;
-		my $post  = $';
-		my $label = $1;
-		my $url   = $2;
-		if($pre ne ""){ push(@array,$self->parse_line($pre)); }
-		if(index($url,'"') >= 0 || index($url,'><') >= 0 || index($url, 'javascript:') >= 0){
-			push @array,$self->parse_line("<<不正なリンクです。>>");
-		} else {
-			# URIを作成
-			my $wiki = $self->{wiki};
-			my $uri = $wiki->config('server_host');
-			if($uri eq ""){
-				$uri = $wiki->get_CGI()->url(-path_info => 1);
-			} else {
-				$uri = $uri . $wiki->get_CGI->url(-absolute => 1) . $wiki->get_CGI()->path_info();
+
+		# InterWikiName
+		elsif ($self->{interwiki}->exists_interwiki($source)) {
+			my $label = $self->{interwiki}->{g_label};
+			my $url   = $self->{interwiki}->{g_url};
+			$source = $self->{interwiki}->{g_post};
+			$parsed = $self->url_anchor($url, $label);
+		}
+
+		# ページ別名リンク
+		elsif ($source =~ /^\[\[([^\[]+?)\|([^\|\[]+?)\]\]/) {
+			my $label = $1;
+			my $page  = $2;
+			$source = substr($source, $+[0]);	# as $'
+			$parsed = $self->wiki_anchor($page, $label);
+		}
+
+		# URL別名リンク
+		elsif ($source
+			=~ /^\[([^\[]+?)\|((?:http|https|ftp|mailto):[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!&=:;\*#\@'\$]*)\]/
+			|| $source =~ /^\[([^\[]+?)\|(file:[^\[\]]*)\]/
+			|| $source
+			=~ /^\[([^\[]+?)\|((?:\/|\.\/|\.\.\/)+[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!&=:;\*#\@'\$]*)\]/
+			)
+		{
+			my $label = $1;
+			my $url   = $2;
+			$source = substr($source, $+[0]);	# as $'
+			if (   index($url, q{"}) >= 0
+				|| index($url, '><') >= 0
+				|| index($url, 'javascript:') >= 0)
+			{
+				$parsed = $self->parse_line('<<不正なリンクです。>>');
 			}
-			push @array,$self->url_anchor($uri."/../".$url, $label);
+			else {
+				$parsed = $self->url_anchor($url, $label);
+			}
 		}
-		if($post ne ""){ push(@array,$self->parse_line($post)); }
-	
-	# ボールド、イタリック、取り消し線、下線
-	} elsif($source =~ /((''')|('')|(==)|(__))(.+?)(\1)/){
-		my $pre   = $`;
-		my $post  = $';
-		my $type  = $1;
-		my $label = $6;
-		if($pre ne ""){ push(@array,$self->parse_line($pre)); }
-		if($type eq "'''"){
-			push @array,$self->bold($label);
-		} elsif($type eq "__"){
-			push @array,$self->underline($label);
-		} elsif($type eq "''"){
-			push @array,$self->italic($label);
-		} elsif($type eq "=="){
-			push @array,$self->denialline($label);
+
+		# URLリンク
+		elsif ($source
+			=~ /^(?:https?|ftp|mailto):[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!&=:;\*#\@'\$]*/
+			|| $source =~ /^file:[^\[\]]*/)
+		{
+			my $url = substr($source, $-[0], $+[0] - $-[0]);	# as $&
+			$source = substr($source, $+[0]);				   # as $'
+			if (   index($url, q{"}) >= 0
+				|| index($url, '><') >= 0
+				|| index($url, 'javascript:') >= 0)
+			{
+				$parsed = $self->parse_line('<<不正なリンクです。>>');
+			}
+			else {
+				$parsed = $self->url_anchor($url);
+			}
 		}
-		if($post ne ""){ push(@array,$self->parse_line($post)); }
-	
-	# キーワード
-	} elsif($self->{keyword}->exists_keyword($source)){
-		my $pre   = $self->{keyword}->{g_pre};
-		my $post  = $self->{keyword}->{g_post};
-		my $label = $self->{keyword}->{g_label};
-		my $url   = $self->{keyword}->{g_url};
-		my $page  = $self->{keyword}->{g_page};
-		if($pre ne ""){ push(@array,$self->parse_line($pre)); }
-		if(defined($url) && $url ne ""){
-			push @array,$self->url_anchor($url,$label);
-		} else {
-			push @array,$self->wiki_anchor($page,$label);
+
+		# ページリンク
+		elsif ($source =~ /^\[\[([^\|]+?)\]\]/) {
+			my $page = $1;
+			$source = substr($source, $+[0]);	  # as $'
+			$parsed = $self->wiki_anchor($page);
 		}
-		if($post ne ""){ push(@array,$self->parse_line($post)); }
-		
-	# WikiName
-	} elsif($self->{wiki}->config('wikiname')==1 && $source =~ /[A-Z]+?[a-z]+?([A-Z]+?[a-z]+)+/){
-		my $pre   = $`;
-		my $post  = $';
-		my $page  = $&;
-		if($pre ne ""){ push(@array,$self->parse_line($pre)); }
-		push @array,$self->wiki_anchor($page);
-		if($post ne ""){ push(@array,$self->parse_line($post)); }
-		
-	# エラーメッセージ
-	} elsif($source =~ /(<<)(.+?)(>>)/){
-		my $pre   = $`;
-		my $post  = $';
-		my $label = $2;
-		if($pre ne ""){ push(@array,$self->parse_line($pre)); }
-		push @array,$self->error($label);
-		if($post ne ""){ push(@array,$self->parse_line($post)); }
-		
-	} else {
-		push @array,$self->text($source);
+
+		# 任意のURLリンク
+		elsif ($source =~ /^\[([^\[]+?)\|(.+?)\]/) {
+			my $label = $1;
+			my $url   = $2;
+			$source = substr($source, $+[0]);	  # as $'
+			if (   index($url, q{"}) >= 0
+				|| index($url, '><') >= 0
+				|| index($url, 'javascript:') >= 0)
+			{
+				$parsed = $self->parse_line('<<不正なリンクです。>>');
+			}
+			else {
+
+				# URIを作成
+				my $wiki = $self->{wiki};
+				my $uri  = $wiki->config('server_host');
+				if ($uri eq q{}) {
+					$uri = $wiki->get_CGI()->url(-path_info => 1);
+				}
+				else {
+					$uri
+						= $uri
+						. $wiki->get_CGI->url(-absolute => 1)
+						. $wiki->get_CGI()->path_info();
+				}
+				$parsed = $self->url_anchor($uri . '/../' . $url, $label);
+			}
+		}
+
+		# ボールド、イタリック、取り消し線、下線
+		elsif ($source =~ /^('''?|==|__)(.+?)\1/) {
+			my $type  = $1;
+			my $label = $2;
+			$source = substr($source, $+[0]);	# as $'
+			if ($type eq q{'''}) {
+				$parsed = $self->bold($label);
+			}
+			elsif ($type eq q{__}) {
+				$parsed = $self->underline($label);
+			}
+			elsif ($type eq q{''}) {
+				$parsed = $self->italic($label);
+			}
+			else {							   ## elsif ($type eq q{==}) {
+				$parsed = $self->denialline($label);
+			}
+		}
+
+		# エラーメッセージ
+		elsif ($source =~ /^<<(.+?)>>/) {
+			my $label = $1;
+			$source = substr($source, $+[0]);	# as $'
+			$parsed = $self->error($label);
+		}
+
+		# インライン Wiki 書式全体には macth しなかったとき
+		else {
+
+			# 1 文字進む。
+			$pre .= substr($source, 0, 1);
+			$source = substr($source, 1);
+
+			# parse 結果を @array に保存する処理を飛ばして繰り返し。
+			next SOURCE;
+		}
+
+		# インライン Wiki 書式全体に macth した後の
+		# parse 結果を @array に保存する処理。
+
+		# もし $pre が溜まっているなら、キーワードの処理を実施。
+		if ($pre ne q{}) {
+			push @array, $self->_parse_line_keyword($pre);
+			$pre = q{};
+		}
+
+		push @array, $parsed;
 	}
-	
+
+	# もし $pre が溜まっているなら、キーワードの処理を実施。
+	push @array, $self->_parse_line_keyword($pre) if ($pre ne q{});
+
 	return @array;
+}
+
+#========================================================================
+# <p>
+# parse_line() から呼び出され、キーワードの検索・置換処理を行います。
+# </p>
+#========================================================================
+sub _parse_line_keyword {
+    my $self   = shift;
+    my $source = shift;
+
+    return () if (not defined $source);
+
+    my @array = ();
+
+    # $source が空になるまで繰り返す。
+    while ($source ne q{}) {
+
+        # キーワード
+        if ($self->{keyword}->exists_keyword($source)) {
+            my $pre   = $self->{keyword}->{g_pre};
+            my $label = $self->{keyword}->{g_label};
+            my $url   = $self->{keyword}->{g_url};
+            my $page  = $self->{keyword}->{g_page};
+            $source = $self->{keyword}->{g_post};
+            if ($pre ne q{}) {
+                push @array, $self->_parse_line_keyword($pre);
+            }
+            if (defined($url) && $url ne q{}) {
+                push @array, $self->url_anchor($url, $label);
+            }
+            else {
+                push @array, $self->wiki_anchor($page, $label);
+            }
+
+        }
+
+        # WikiName
+        elsif ($self->{wiki}->config('wikiname') == 1
+            && $source =~ /[A-Z]+?[a-z]+?(?:[A-Z]+?[a-z]+)+/)
+        {
+            my $pre  = substr($source, 0,     $-[0]);            # as $`
+            my $page = substr($source, $-[0], $+[0] - $-[0]);    # as $&
+            $source = substr($source, $+[0]);                    # as $'
+            if ($pre ne q{}) {
+                push @array, $self->_parse_line_keyword($pre);
+            }
+            push @array, $self->wiki_anchor($page);
+        }
+
+        # キーワードも WikiName も見つからなかったとき
+        else {
+            push @array, $self->text($source);
+            return @array;
+        }
+    }
+    return @array;
 }
 
 #===============================================================================

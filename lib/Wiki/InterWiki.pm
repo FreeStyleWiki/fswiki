@@ -90,8 +90,8 @@ sub _parse_line {
 	my $source = shift;
 	# 別名リンク
 	if($source =~ /\[([^\[]+?)\|((http|https|ftp|mailto):[\w\.,%~^+\-%\/\?\(\)!\$&=:;\*#\@']*)\]\s*([\w\-]+)/
-	    ||  $source =~ /\[([^\[]+?)\|((file:[^\[\]]*))\]\s*([\w\-]+)/
-	    ||  $source =~ /\[([^\[]+?)\|((\/|\.\/|\.\.\/)+[\w\.,%~^+\-%\/\?\(\)!\$&=:;\*#\@']*)\]\s*([\w\-]+)/){
+		||  $source =~ /\[([^\[]+?)\|((file:[^\[\]]*))\]\s*([\w\-]+)/
+		||  $source =~ /\[([^\[]+?)\|((\/|\.\/|\.\.\/)+[\w\.,%~^+\-%\/\?\(\)!\$&=:;\*#\@']*)\]\s*([\w\-]+)/){
 		my $label = $1;
 		my $url   = $2;
 		my $enc   = $4;
@@ -99,8 +99,8 @@ sub _parse_line {
 
 	# 文字コードの指定なし
 	} elsif($source =~ /\[([^\[]+?)\|((http|https|ftp|mailto):[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!\$&=:;\*#\@']*)\]/
-	    ||  $source =~ /\[([^\[]+?)\|(file:[^\[\]]*)\]/
-	    ||  $source =~ /\[([^\[]+?)\|((\/|\.\/|\.\.\/)+[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!\$&=:;\*#\@']*)\]/){
+		||  $source =~ /\[([^\[]+?)\|(file:[^\[\]]*)\]/
+		||  $source =~ /\[([^\[]+?)\|((\/|\.\/|\.\.\/)+[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!\$&=:;\*#\@']*)\]/){
 		my $label = $1;
 		my $url   = $2;
 		my $enc   = "";
@@ -139,36 +139,43 @@ sub add_inter_wiki {
 # InterWikiNameが含まれるかどうかチェック
 #==============================================================================
 sub exists_interwiki {
-	my $self = shift;
-	my $str  = shift;
+	my ($self, $str) = @_;
 
-	my @keywords = @{$self->{interwiki}};
+	return 0 if (not defined $str);
 
-	foreach my $keyword (@keywords){
+	# $str の先頭に InterWikiName になりうる書式がなければ、偽を返して終了
+	return 0 if (not $str =~ /^\[\[/);
+
+	my @keywords = @{ $self->{interwiki} };
+
+	# 定義された全ての InterWikiName について繰り返す。
+	foreach my $keyword (@keywords) {
+
 		my $label = $keyword->{quote};
 
-		if($str =~ /\[\[$label:(.+?)\]\]/){
-			$self->{g_pre}   = $`;
-			$self->{g_post}  = $';
+		# 別名なしの InterWikiName
+		if ($str =~ /^\[\[$label:(.+?)\]\]/) {
+			$self->{g_post} = substr($str, $+[0]);	# as $'
 			my $enc   = $keyword->{enc};
 			my $param = $1;
-			$self->{g_label} = $keyword->{label}.":".$param;
-			if($enc ne ""){
-				&Jcode::convert(\$param,$enc);
+			$self->{g_label} = $keyword->{label} . ':' . $param;
+			if ($enc ne q{}) {
+				&Jcode::convert(\$param, $enc);
 			}
-			$self->{g_url} = $keyword->{url}.Util::url_encode($param);
+			$self->{g_url} = $keyword->{url} . Util::url_encode($param);
 			return 1;
+		}
 
-		} elsif($str =~ /\[\[([^\[]+?)\|$label:(.+?)\]\]/){
-			$self->{g_pre}   = $`;
-			$self->{g_post}  = $';
+		# 別名ありの InterWikiName
+		elsif ($str =~ /^\[\[([^\[]+?)\|$label:(.+?)\]\]/) {
+			$self->{g_post} = substr($str, $+[0]);	# as $'
 			$self->{g_label} = $1;
 			my $enc   = $keyword->{enc};
 			my $param = $2;
-			if($enc ne ""){
-				&Jcode::convert(\$param,$enc);
+			if ($enc ne q{}) {
+				&Jcode::convert(\$param, $enc);
 			}
-			$self->{g_url} = $keyword->{url}.Util::url_encode($param);
+			$self->{g_url} = $keyword->{url} . Util::url_encode($param);
 			return 1;
 		}
 	}
