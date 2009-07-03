@@ -10,12 +10,12 @@ use strict;
 # コンストラクタ
 #==============================================================================
 sub new {
-	my $class     = shift;
-	my $wiki      = shift;
+	my $class	 = shift;
+	my $wiki	  = shift;
 	my $interwiki = shift;
-	my $self      = {};
+	my $self	  = {};
 	
-	$self->{wiki}      = $wiki;
+	$self->{wiki}	  = $wiki;
 	$self->{keywords}  = [];
 	$self->{interwiki} = $interwiki;
 	
@@ -90,7 +90,7 @@ sub load_keywords {
 		$url->{$keyword->{word}}  = $keyword->{url};
 		$page->{$keyword->{word}} = $keyword->{page};
 	}
-	$self->{regex}     = $regex;
+	$self->{regex}	 = $regex;
 	$self->{info_url}  = $url;
 	$self->{info_page} = $page;
 }
@@ -157,37 +157,60 @@ sub parse {
 }
 
 sub parse_line {
-	my $self   = shift;
-	my $source = shift;
-	
-	# 別名リンク
-	if($source =~ /\[([^\[]+?)\|((http|https|ftp|mailto):[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!\$&=:;\*#\@']*)\]/
-	|| $source =~ /\[([^\[]+?)\|(file:[^\[\]]*)\]/
-	|| $source =~ /\[([^\[]+?)\|((\/|\.\/|\.\.\/)+[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!\$&=:;\*#\@']*)\]/){
-	
-		my $label = $1;
-		my $url   = $2;
-		$self->url_anchor($url,$label);
-	
-	# InterWiki
-	} elsif($self->{interwiki}->exists_interwiki($source)){
-		my $pre   = $self->{interwiki}->{g_pre};
-		my $post  = $self->{interwiki}->{g_post};
-		my $label = $self->{interwiki}->{g_label};
-		my $url   = $self->{interwiki}->{g_url};
-		$self->url_anchor($url,$label);
- 
-	# ページ別名リンク
-	} elsif($source =~ /\[\[([^\[]+?)\|(.+?)\]\]/){
-		my $label = $1;
-		my $page  = $2;
-		$self->wiki_anchor($page,$label);
-		
-	# 任意のURLリンク
-	} elsif($source =~ /\[([^\[]+?)\|(.+?)\]/){
-		my $label = $1;
-		my $url   = $2;
-		$self->url_anchor($url,$label);
+	my ($self, $source) = @_;
+
+	return if (not defined $source);
+
+	# $source が空になるまで繰り返す。
+	while ($source ne q{}) {
+
+		# キーワードを定義する書式がなければ終了。
+		return if (not $source =~ /^[^\[]*(\[.+)$/);
+
+		$source = $1;
+
+		# 別名リンク
+		if ($source
+			=~ /^\[([^\[]+?)\|((?:https?|ftp|mailto):[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!&=:;\*#\@'\$]*)\]/
+			|| $source =~ /^\[([^\[]+?)\|(file:[^\[\]]*)\]/
+			|| $source
+			=~ /^\[([^\[]+?)\|((?:\/|\.\/|\.\.\/)+[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!&=:;\*#\@'\$]*)\]/
+			)
+		{
+			my $label = $1;
+			my $url   = $2;
+			$source = substr($source, $+[0]);	# as $'
+			$self->url_anchor($url, $label);
+		}
+
+		# InterWiki
+		elsif ($self->{interwiki}->exists_interwiki($source)) {
+			my $label = $self->{interwiki}->{g_label};
+			my $url   = $self->{interwiki}->{g_url};
+			$source = $self->{interwiki}->{g_post};
+			$self->url_anchor($url, $label);
+		}
+
+		# ページ別名リンク
+		elsif ($source =~ /^\[\[([^\[]+?)\|(.+?)\]\]/) {
+			my $label = $1;
+			my $page  = $2;
+			$source = substr($source, $+[0]);	# as $'
+			$self->wiki_anchor($page, $label);
+		}
+
+		# 任意のURLリンク
+		elsif ($source =~ /^\[([^\[]+?)\|(.+?)\]/) {
+			my $label = $1;
+			my $url   = $2;
+			$source = substr($source, $+[0]);	# as $'
+			$self->url_anchor($url, $label);
+		}
+
+		# 以上に macth しなかったなら、1 文字進める。
+		else {
+			$source = substr($source, 1);
+		}
 	}
 }
 
