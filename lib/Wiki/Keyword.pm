@@ -10,12 +10,12 @@ use strict;
 # コンストラクタ
 #==============================================================================
 sub new {
-	my $class	 = shift;
-	my $wiki	  = shift;
+	my $class     = shift;
+	my $wiki      = shift;
 	my $interwiki = shift;
-	my $self	  = {};
+	my $self      = {};
 	
-	$self->{wiki}	  = $wiki;
+	$self->{wiki}      = $wiki;
 	$self->{keywords}  = [];
 	$self->{interwiki} = $interwiki;
 	
@@ -90,7 +90,7 @@ sub load_keywords {
 		$url->{$keyword->{word}}  = $keyword->{url};
 		$page->{$keyword->{word}} = $keyword->{page};
 	}
-	$self->{regex}	 = $regex;
+	$self->{regex}     = $regex;
 	$self->{info_url}  = $url;
 	$self->{info_page} = $page;
 }
@@ -157,7 +157,8 @@ sub parse {
 }
 
 sub parse_line {
-	my ($self, $source) = @_;
+	my $self   = shift;
+	my $source = shift;
 
 	return if (not defined $source);
 
@@ -170,16 +171,12 @@ sub parse_line {
 		$source = $1;
 
 		# 別名リンク
-		if ($source
-			=~ /^\[([^\[]+?)\|((?:https?|ftp|mailto):[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!&=:;\*#\@'\$]*)\]/
-			|| $source =~ /^\[([^\[]+?)\|(file:[^\[\]]*)\]/
-			|| $source
-			=~ /^\[([^\[]+?)\|((?:\/|\.\/|\.\.\/)+[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!&=:;\*#\@'\$]*)\]/
-			)
-		{
+		if ($source =~ /^\[([^\[]+?)\|((?:https?|ftp|mailto):[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!&=:;\*#\@'\$]*)\]/
+		 || $source =~ /^\[([^\[]+?)\|(file:[^\[\]]*)\]/
+		 || $source =~ /^\[([^\[]+?)\|((?:\/|\.\/|\.\.\/)+[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!&=:;\*#\@'\$]*)\]/ ) {
 			my $label = $1;
 			my $url   = $2;
-			$source = substr($source, $+[0]);	# as $'
+			$source = $';
 			$self->url_anchor($url, $label);
 		}
 
@@ -195,7 +192,7 @@ sub parse_line {
 		elsif ($source =~ /^\[\[([^\[]+?)\|(.+?)\]\]/) {
 			my $label = $1;
 			my $page  = $2;
-			$source = substr($source, $+[0]);	# as $'
+			$source = $';
 			$self->wiki_anchor($page, $label);
 		}
 
@@ -203,13 +200,13 @@ sub parse_line {
 		elsif ($source =~ /^\[([^\[]+?)\|(.+?)\]/) {
 			my $label = $1;
 			my $url   = $2;
-			$source = substr($source, $+[0]);	# as $'
+			$source = $';
 			$self->url_anchor($url, $label);
 		}
 
 		# 以上に macth しなかったなら、1 文字進める。
 		else {
-			$source = substr($source, 1);
+			$source =~ s/^.//;
 		}
 	}
 }
