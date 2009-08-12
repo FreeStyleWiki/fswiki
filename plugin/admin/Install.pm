@@ -63,6 +63,9 @@ sub install {
 	}
 	
 	$wiki->add_hook("delete","plugin::admin::AdminDeletedPageHandler");
+	
+	$wiki->add_hook("change_config_auto_keyword_page",  "plugin::admin::DeleteCache");
+	$wiki->add_hook("change_config_keyword_slash_page", "plugin::admin::DeleteCache");
 }
 
 1;

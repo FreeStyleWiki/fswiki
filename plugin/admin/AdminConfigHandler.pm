@@ -110,45 +110,54 @@ sub save_config {
 	my $self = shift;
 	my $wiki = shift;
 	my $cgi  = $wiki->get_CGI;
-	my $config = &Util::load_config_hash($wiki,$wiki->config('config_file'));
+	my $old_config = &Util::load_config_hash($wiki,$wiki->config('config_file'));
+	my $new_config = &Util::load_config_hash($wiki,$wiki->config('config_file'));
 	
-	$config->{site_title}           = $cgi->param("site_title");
-	$config->{admin_name}           = $cgi->param("admin_name");
-	$config->{admin_mail}           = $cgi->param("admin_mail");
-	$config->{admin_mail_pub}       = $cgi->param("admin_mail_pub");
-	$config->{mail_prefix}          = $cgi->param("mail_prefix");
-	$config->{mail_id}              = $cgi->param("mail_id");
-	$config->{mail_remote_addr}     = $cgi->param("mail_remote_addr");
-	$config->{mail_user_agent}      = $cgi->param("mail_user_agent");
-	$config->{mail_diff}            = $cgi->param("mail_diff");
-	$config->{mail_backup_source}   = $cgi->param("mail_backup_source");
-	$config->{mail_modified_source} = $cgi->param("mail_modified_source");
-	$config->{pagelist}             = $cgi->param("pagelist");
-	$config->{site_wiki_format}     = $cgi->param("site_wiki_format");
-	$config->{br_mode}              = $cgi->param("br_mode");
-	$config->{accept_edit}          = $cgi->param("accept_edit");
-	$config->{accept_show}          = $cgi->param("accept_show");
-	$config->{wikiname}             = $cgi->param("wikiname");
-	$config->{auto_keyword_page}    = $cgi->param("auto_keyword_page");
-	$config->{keyword_slash_page}   = $cgi->param("keyword_slash_page");
-	$config->{accept_attach_delete} = $cgi->param("accept_attach_delete");
-	$config->{accept_attach_update} = $cgi->param("accept_attach_update");
-	$config->{session_limit}        = $cgi->param("session_limit");
-	$config->{rss_version}          = $cgi->param("rss_version");
-	$config->{open_new_window}      = $cgi->param("open_new_window");
-	$config->{inside_same_window}   = $cgi->param("inside_same_window");
-	$config->{partedit}             = $cgi->param("partedit");
-	$config->{partlink}             = $cgi->param("partlink");
-	$config->{redirect}             = $cgi->param("redirect");
-	$config->{refer_level}          = $cgi->param("refer_level");
-	$config->{accept_user_register} = $cgi->param("accept_user_register");
-	$config->{display_image}        = $cgi->param("display_image");
+	$new_config->{site_title}           = $cgi->param("site_title");
+	$new_config->{admin_name}           = $cgi->param("admin_name");
+	$new_config->{admin_mail}           = $cgi->param("admin_mail");
+	$new_config->{admin_mail_pub}       = $cgi->param("admin_mail_pub");
+	$new_config->{mail_prefix}          = $cgi->param("mail_prefix");
+	$new_config->{mail_id}              = $cgi->param("mail_id");
+	$new_config->{mail_remote_addr}     = $cgi->param("mail_remote_addr");
+	$new_config->{mail_user_agent}      = $cgi->param("mail_user_agent");
+	$new_config->{mail_diff}            = $cgi->param("mail_diff");
+	$new_config->{mail_backup_source}   = $cgi->param("mail_backup_source");
+	$new_config->{mail_modified_source} = $cgi->param("mail_modified_source");
+	$new_config->{pagelist}             = $cgi->param("pagelist");
+	$new_config->{site_wiki_format}     = $cgi->param("site_wiki_format");
+	$new_config->{br_mode}              = $cgi->param("br_mode");
+	$new_config->{accept_edit}          = $cgi->param("accept_edit");
+	$new_config->{accept_show}          = $cgi->param("accept_show");
+	$new_config->{wikiname}             = $cgi->param("wikiname");
+	$new_config->{auto_keyword_page}    = $cgi->param("auto_keyword_page");
+	$new_config->{keyword_slash_page}   = $cgi->param("keyword_slash_page");
+	$new_config->{accept_attach_delete} = $cgi->param("accept_attach_delete");
+	$new_config->{accept_attach_update} = $cgi->param("accept_attach_update");
+	$new_config->{session_limit}        = $cgi->param("session_limit");
+	$new_config->{rss_version}          = $cgi->param("rss_version");
+	$new_config->{open_new_window}      = $cgi->param("open_new_window");
+	$new_config->{inside_same_window}   = $cgi->param("inside_same_window");
+	$new_config->{partedit}             = $cgi->param("partedit");
+	$new_config->{partlink}             = $cgi->param("partlink");
+	$new_config->{redirect}             = $cgi->param("redirect");
+	$new_config->{refer_level}          = $cgi->param("refer_level");
+	$new_config->{accept_user_register} = $cgi->param("accept_user_register");
+	$new_config->{display_image}        = $cgi->param("display_image");
 	
-	&Util::save_config_hash($wiki,$wiki->config('config_file'),$config);
+	&Util::save_config_hash($wiki,$wiki->config('config_file'),$new_config);
+	
+	# config 情報ハッシュ内の全てのキーについて、
+	foreach my $config_key (sort keys %$new_config) {
+		my $old = $old_config->{$config_key};
+		my $new = $new_config->{$config_key};
+		# 値が更新されていたら、フック「change_config_キー名」を発行。
+		if ($new ne $old) {
+			$wiki->do_hook('change_config_' . $config_key, $new, $old);
+		}
+	}
 	
 	$wiki->redirectURL( $wiki->create_url({ action=>"ADMINCONFIG"}) );
-	#return "設定を保存しました。\n";
-
 }
 
 #==============================================================================
