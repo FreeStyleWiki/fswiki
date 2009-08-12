@@ -50,24 +50,29 @@ sub l_list {
 	$self->end_quote;
 	
 	my $html = join("",@$obj);
-	my $plus = 1;
-	
-	if($level < $self->{level}){ $plus = -1; }
-	if($level==$self->{level}){
-		$self->{html} .= "</li>\n";
-	}
-	while($level != $self->{level}){
-		if($plus==1){
+
+	if($level > $self->{level}){
+		while($level != $self->{level}){
 			$self->{html} .= "<ul>\n";
 			push(@{$self->{close_list}},"</ul>\n");
-		} else {
-			$self->{html} .= "</li>\n";
-			$self->{html} .= pop(@{$self->{close_list}});
+			$self->{level}++;
 		}
-		$self->{level} += $plus;
+	} elsif($level <= $self->{level}){
+		while($level-1 != $self->{level}){
+			if($self->{'list_close_'.$self->{level}} == 1){
+				$self->{html} .= "</li>\n";
+				$self->{'list_close_'.$self->{level}} = 0;
+			}
+			if($level == $self->{level}){
+				last;
+			}
+			$self->{html} .= pop(@{$self->{close_list}});
+			$self->{level}--;
+		}
 	}
 	
 	$self->{html} .= "<li>".$html;
+	$self->{'list_close_'.$level} = 1;
 }
 
 #==============================================================================
@@ -88,23 +93,29 @@ sub l_numlist {
 	$self->end_quote;
 	
 	my $html = join("",@$obj);
-	my $plus = 1;
 	
-	if($level < $self->{level}){ $plus = -1; }
-	if($level==$self->{level}){
-		$self->{html} .= "</li>\n";
-	}
-	while($level != $self->{level}){
-		if($plus==1){
+	if($level > $self->{level}){
+		while($level != $self->{level}){
 			$self->{html} .= "<ol>\n";
 			push(@{$self->{close_list}},"</ol>\n");
-		} else {
-			$self->{html} .= "</li>\n";
-			$self->{html} .= pop(@{$self->{close_list}});
+			$self->{level}++;
 		}
-		$self->{level} += $plus;
+	} elsif($level <= $self->{level}){
+		while($level-1 != $self->{level}){
+			if($self->{'list_close_'.$self->{level}} == 1){
+				$self->{html} .= "</li>\n";
+				$self->{'list_close_'.$self->{level}} = 0;
+			}
+			if($level == $self->{level}){
+				last;
+			}
+			$self->{html} .= pop(@{$self->{close_list}});
+			$self->{level}--;
+		}
 	}
+	
 	$self->{html} .= "<li>".$html;
+	$self->{'list_close_'.$level} = 1;
 }
 
 #==============================================================================
@@ -112,12 +123,12 @@ sub l_numlist {
 #==============================================================================
 sub end_list {
 	my $self  = shift;
-	if ($self->{level}!=0) {
-		$self->{html} .= "</li>\n";
-		while($self->{level}!=0){
-			$self->{html} .= pop(@{$self->{close_list}});
-			$self->{level} += -1;
+	while($self->{level} != 0){
+		if($self->{'list_close_'.($self->{level})} == 1){
+			$self->{html} .= "</ll>\n";
 		}
+		$self->{html} .= pop(@{$self->{close_list}});
+		$self->{level}--;
 	}
 }
 
