@@ -37,13 +37,22 @@ sub l_headline {
 			$self->{outline_level}++;
 		}
 	} elsif($level < $self->{outline_level}){
-		while($level!=$self->{outline_level}){
-			$self->{outline_html} .= "</li></ul>\n";
+		while($level-1  != $self->{outline_level}){
+			if($self->{'outline_close_'.($self->{outline_level})} == 1){
+				$self->{outline_html} .= "</ll>\n";
+				$self->{'outline_close_'.($self->{outline_level})} = 0;
+			}
+			if($level == $self->{outline_level}){
+				last;
+			}
+			$self->{outline_html} .= "</ul>\n";
 			$self->{outline_level}--;
 		}
 	} else {
 		$self->{outline_html} .= "</li>\n";
 	}
+	
+	$self->{'outline_close_'.$level} = 1;
 	$self->{outline_html} .= "<li><a href=\"#p".$self->{outline_cnt}."\">$text</a>";
 	$self->{outline_cnt}++;
 }
@@ -56,8 +65,11 @@ sub outline {
 	my $source = shift;
 	$self->parse($source);
 	
-	while($self->{outline_level}!=0){
-		$self->{outline_html} .= "</li></ul>\n";
+	while($self->{outline_level} != 0){
+		if($self->{'outline_close_'.($self->{outline_level})} == 1){
+			$self->{outline_html} .= "</ll>\n";
+		}
+		$self->{outline_html} .= "</ul>\n";
 		$self->{outline_level}--;
 	}
 	
