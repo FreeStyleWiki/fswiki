@@ -1073,6 +1073,9 @@ sub set_page_level {
 	my $page  = shift;
 	my $level = shift;
 	
+	# $level が未定義ならページデータ削除なので、フック関連処理不要。
+	return $self->{"storage"}->set_page_level($page) if (not defined $level);
+
 	# 与えられた $level が現在のページレベルと等しければ何もせずに終了。
 	my $old_level = $self->get_page_level($page);
 	return if ($level == $old_level);
