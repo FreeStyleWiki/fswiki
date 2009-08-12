@@ -33,7 +33,7 @@ sub l_headline {
 	
 	if($level > $self->{outline_level}){
 		while($level!=$self->{outline_level}){
-			$self->{outline_html} .= "<ul>\n";
+			$self->{outline_html} .= "<ul class=\"outline\">\n";
 			$self->{outline_level}++;
 		}
 	} elsif($level < $self->{outline_level}){
