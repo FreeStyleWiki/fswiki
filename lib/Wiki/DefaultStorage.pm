@@ -202,18 +202,17 @@ sub _create_page_list_file {
 		}
 		closedir(DIR);
 		Util::save_config_text(undef, $file, $buf);
-	} else {
-		if($flag eq "remove"){
-			my $names = Util::load_config_text(undef, $file);
-			$names =~ s/(^|\n)\Q$page\E\n/\n/;
-			Util::save_config_text(undef, $file, $names);
-		} elsif($flag eq 'update'){
-			# ページの更新時は何もしない
-		} elsif($flag eq 'create') {
-			open(DATA, ">>$file");
-			print DATA "$page\n";
-			close(DATA);
-		}
+	}
+	if($flag eq "remove"){
+		my $names = Util::load_config_text(undef, $file);
+		$names =~ s/(^|\n)\Q$page\E\n/\n/;
+		Util::save_config_text(undef, $file, $names);
+	} elsif($flag eq 'update'){
+		# ページの更新時は何もしない
+	} elsif($flag eq 'create') {
+		open(DATA, ">>$file");
+		print DATA "$page\n";
+		close(DATA);
 	}
 }
 
