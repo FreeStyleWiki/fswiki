@@ -1072,15 +1072,11 @@ sub set_page_level {
 	my $self  = shift;
 	my $page  = shift;
 	my $level = shift;
-	
-	# $level が未定義ならページデータ削除なので、フック関連処理不要。
-	return $self->{"storage"}->set_page_level($page) if (not defined $level);
-
-	# 与えられた $level が現在のページレベルと等しければ何もせずに終了。
-	my $old_level = $self->get_page_level($page);
-	return if ($level == $old_level);
 
 	$self->{"storage"}->set_page_level($page,$level);
+
+	# $level が未定義ならページデータ削除なので、フック関連処理不要。
+	return if (not defined $level);
 
 	# 処理の成否を検査。
 	my $new_level = $self->get_page_level($page);
@@ -1089,7 +1085,7 @@ sub set_page_level {
 	}
 
 	# ページレベルの変更に成功したので、フックを発行。
-	$self->do_hook('change_page_level', $page, $new_level, $old_level);	
+	$self->do_hook('change_page_level', $page, $new_level);
 }
 
 #==============================================================================
