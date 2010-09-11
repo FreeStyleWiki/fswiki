@@ -39,7 +39,7 @@ sub l_headline {
 	} elsif($level <= $self->{outline_level}){
 		while($level-1  != $self->{outline_level}){
 			if($self->{'outline_close_'.($self->{outline_level})} == 1){
-				$self->{outline_html} .= "</ll>\n";
+				$self->{outline_html} .= "</li>\n";
 				$self->{'outline_close_'.($self->{outline_level})} = 0;
 			}
 			if($level == $self->{outline_level}){
@@ -67,7 +67,7 @@ sub outline {
 	
 	while($self->{outline_level} != 0){
 		if($self->{'outline_close_'.($self->{outline_level})} == 1){
-			$self->{outline_html} .= "</ll>\n";
+			$self->{outline_html} .= "</li>\n";
 		}
 		$self->{outline_html} .= "</ul>\n";
 		$self->{outline_level}--;
