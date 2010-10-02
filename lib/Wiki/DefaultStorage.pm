@@ -170,6 +170,7 @@ sub save_page {
 	
 	rename($tmpfile, $wikifile);
 	Util::file_unlock($wikifile);
+	delete $self->{exists_cache}->{":$page"}; # page_exists() のキャッシュをクリア。
 	
 	return 1;
 }
