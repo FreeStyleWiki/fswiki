@@ -33,6 +33,10 @@ sub l_headline {
 	
 	if($level > $self->{outline_level}){
 		while($level!=$self->{outline_level}){
+			if($self->{'outline_close_'.($self->{outline_level})} == 1){
+				$self->{outline_html} .= "</li>\n";
+				$self->{'outline_close_'.($self->{outline_level})} = 0;
+			}
 			$self->{outline_html} .= "<ul class=\"outline\">\n";
 			$self->{outline_level}++;
 		}
