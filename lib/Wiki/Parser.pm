@@ -186,10 +186,10 @@ sub parse {
 				$self->{dd} .= substr($line,3);
 				next;
 			}
+			if($self->{dt} ne "" || $self->{dd} ne ""){
+				$self->multi_explanation;
+			}
 			if(index($line,"::")==0){
-				if($self->{dt} ne "" || $self->{dd} ne ""){
-					$self->multi_explanation;
-				}
 				$self->{dt} = substr($line,2);
 				$self->{dl_flag} = 1;
 				next;
