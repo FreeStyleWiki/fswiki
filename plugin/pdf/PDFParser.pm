@@ -120,7 +120,14 @@ sub get_texts {
 	my $texts = "";
 	foreach my $textobj (@$obj){
 		foreach(@{$textobj->{texts}}){
-			$texts .= $_;
+			if(ref($_) eq 'PDFJ::Text'){
+				my $obj2; push @$obj2,$_;
+				$texts .= $self->get_texts($obj2);
+			} elsif(ref($_) ne ''){
+				next;
+			} else {
+				$texts .= $_;
+			}
 		}
 	}
 	return $texts;
