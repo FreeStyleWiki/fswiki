@@ -135,9 +135,10 @@ eval {
 	#==============================================================================
 	my $output        = "";
 	my $is_handyphone = &Util::handyphone();
+	my $is_smartphone = &Util::smartphone();
 	my $template_name = "";
 
-	if ($is_handyphone) {
+	if ($is_handyphone || $is_smartphone) {
 		$template_name = 'site_handyphone_tmpl';
 	} else {
 		$template_name = 'site_tmpl';
@@ -240,7 +241,7 @@ eval {
 		IS_LOGIN => defined($login)
 	);
 
-	if ($is_handyphone) {
+	if ($is_handyphone || $is_smartphone) {
 		# 携帯電話用処理
 		$output = $template->output;
 		&Jcode::convert(\$output,"sjis");
