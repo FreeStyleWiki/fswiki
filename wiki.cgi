@@ -135,10 +135,9 @@ eval {
 	#==============================================================================
 	my $output        = "";
 	my $is_handyphone = &Util::handyphone();
-	my $is_smartphone = &Util::smartphone();
 	my $template_name = "";
 
-	if ($is_handyphone || $is_smartphone) {
+	if ($is_handyphone) {
 		$template_name = 'site_handyphone_tmpl';
 	} else {
 		$template_name = 'site_tmpl';
@@ -241,7 +240,7 @@ eval {
 		IS_LOGIN => defined($login)
 	);
 
-	if ($is_handyphone || $is_smartphone) {
+	if ($is_handyphone) {
 		# 携帯電話用処理
 		$output = $template->output;
 		&Jcode::convert(\$output,"sjis");
@@ -292,7 +291,7 @@ eval {
 	# 出力処理
 	#------------------------------------------------------------------------------
 	# ヘッダの出力
-	if($is_handyphone || $is_smartphone){
+	if($is_handyphone){
 		print "Content-Type: text/html;charset=Shift_JIS\n";
 	} else {
 		print "Content-Type: text/html;charset=EUC-JP\n";
