@@ -10,10 +10,16 @@ sub install {
 	my $wiki = shift;
 	
 	my $login = $wiki->get_login_info();
+	my $page = $wiki->get_CGI()->param('page');
+	
 	if(defined($login)){
 		$wiki->add_menu("管理",$wiki->create_url({action=>"LOGIN"}),0);
 	} else {
-		$wiki->add_menu("ログイン",$wiki->create_url({action=>"LOGIN"}),0);
+		if($page){
+			$wiki->add_menu("ログイン",$wiki->create_url({action=>"LOGIN", page=>$page}),0);
+		} else {
+			$wiki->add_menu("ログイン",$wiki->create_url({action=>"LOGIN"}),0);
+		}
 	}
 	$wiki->add_handler("LOGIN","plugin::admin::Login");
 	
