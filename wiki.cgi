@@ -292,7 +292,7 @@ eval {
 	# 出力処理
 	#------------------------------------------------------------------------------
 	# ヘッダの出力
-	if($is_handyphone){
+	if($is_handyphone || $is_smartphone){
 		print "Content-Type: text/html;charset=Shift_JIS\n";
 	} else {
 		print "Content-Type: text/html;charset=EUC-JP\n";
