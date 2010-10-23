@@ -285,7 +285,7 @@ sub smartphone {
 	if(!defined($ua)){
 		return 0;
 	}
-	if($ua =~ /Android// || $ua =~ /iPhone/){
+	if($ua =~ /Android/ || $ua =~ /iPhone/){
 		return 1;
 	} else {
 		return 0;
