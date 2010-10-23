@@ -34,6 +34,8 @@ sub do_action {
 		# ログインの判定
 		my $id   = $cgi->param("id");
 		my $pass = $cgi->param("pass");
+		my $page = $cgi->param("page");
+		
 		if($id ne "" && $pass ne ""){
 			my $login = $wiki->login_check($id,&Util::md5($pass,$id));
 			if(defined($login)){
@@ -42,7 +44,11 @@ sub do_action {
 				$session->param("wiki_type",$login->{type});
 				$session->param("wiki_path",$login->{path});
 				$session->flush();
-				$wiki->redirectURL($wiki->create_url({action=>"LOGIN"}));
+				if($page){
+					$wiki->redirectURL($wiki->create_page_url($page));
+				} else {
+					$wiki->redirectURL($wiki->create_url({action=>"LOGIN"}));
+				}
 			} else {
 				return $wiki->error("IDもしくはパスワードが違います。");
 			}
@@ -124,6 +130,11 @@ sub default {
 	$tmpl->param(
 		ACCEPT_USER_REGISTER => $wiki->config("accept_user_register"),
 		URL => $wiki->create_url());
+	
+	my $page = $wiki->get_CGI()->param('page');
+	if($page){
+		$tmpl->param(PAGE => $page);
+	}
 		
 	return $tmpl->output();
 }
