@@ -7,7 +7,7 @@ package plugin::amazon::Install;
 
 sub install {
 	my $wiki = shift;
-	$wiki->add_paragraph_plugin("amazon","plugin::amazon::Amazon", "HTML");
+	$wiki->add_inline_plugin("amazon","plugin::amazon::Amazon", "HTML");
 }
 
 1;
