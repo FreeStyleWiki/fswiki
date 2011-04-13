@@ -125,7 +125,7 @@ sub end_list {
 	my $self  = shift;
 	while($self->{level} != 0){
 		if($self->{'list_close_'.($self->{level})} == 1){
-			$self->{html} .= "</ll>\n";
+			$self->{html} .= "</li>\n";
 		}
 		$self->{html} .= pop(@{$self->{close_list}});
 		$self->{level}--;
