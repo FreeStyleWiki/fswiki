@@ -34,14 +34,17 @@ sub do_action {
 	}
 	if($cgi->param('rollback') ne ''){
 		return $self->rollback($wiki, $pagename, $cgi->param('rollback'));
-	} elsif($wiki->{storage}->backup_type eq "all"){
-		if($cgi->param("generation") eq ""){
-			return $self->show_history($wiki,$pagename);
+	} elsif($wiki->{storage}->backup_type eq 'all'){
+		if($cgi->param('generation') eq '' && $cgi->param('diff') eq ''){
+			return $self->show_history($wiki, $pagename);
 		} else {
-			return $self->show_diff($wiki,$pagename,$cgi->param("generation"));
+			if($cgi->param('generation') ne ''){
+				return $self->show_diff($wiki, $pagename, '', $cgi->param('generation'));
+			}
+			return $self->show_diff($wiki, $pagename, $cgi->param('from'), $cgi->param('to'));
 		}
 	} else {
-		return $self->show_diff($wiki,$pagename,0);
+		return $self->show_diff($wiki, $pagename, 0);
 	}
 }
 
@@ -71,29 +74,41 @@ sub show_history {
 	my $pagename = shift;
 	
 	$wiki->set_title($pagename."の変更履歴");
-	my $buf   = "<ul>\n";
+	my $buf   = "<form><ul>\n";
 	my $count = 0;
 	my @list  = $wiki->{storage}->get_backup_list($pagename);
 	foreach my $time (@list){
-		$buf .= "<li><a href=\"".$wiki->create_url({ action=>"DIFF",page=>$pagename,generation=>($#list-$count) })."\">".&Util::escapeHTML($time).
+		$buf .= "<li>Rev.".($#list-$count + 1);
+		if($count == 0){
+			$buf .= "<input type=\"radio\" name=\"from\" value=\"\">".
+			        "<input type=\"radio\" name=\"to\" value=\"\">";
+		} else {
+			$buf .= "<input type=\"radio\" name=\"from\" value=\"".($#list-$count)."\">".
+			        "<input type=\"radio\" name=\"to\" value=\"".($#list-$count)."\">";
+		}
+		$buf .= "<a href=\"".$wiki->create_url({ action=>"DIFF",page=>$pagename,generation=>($#list-$count) })."\">".&Util::escapeHTML($time).
 		        "</a>　<a href=\"".$wiki->create_url({ action=>"SOURCE",page=>$pagename,generation=>($#list-$count) })."\">ソース</a>".
 		        "</li>\n";
 		$count++;
 	}
-	return $buf."</ul>\n";
+	return $buf."</ul>".
+	"<input type=\"hidden\" name=\"page\" value=\"".Util::escapeHTML($pagename)."\">".
+	"<input type=\"hidden\" name=\"action\" value=\"DIFF\">".
+	"<input type=\"submit\" name=\"diff\" value=\"選択したリビジョン間の差分を表示\"></form>\n";
 }
 
 #==============================================================================
 # 差分を表示
 #==============================================================================
 sub show_diff {
-	my $self       = shift;
-	my $wiki       = shift;
-	my $pagename   = shift;
-	my $generation = shift;
+	my $self     = shift;
+	my $wiki     = shift;
+	my $pagename = shift;
+	my $from     = shift;
+	my $to       = shift;
 	
 	$wiki->set_title($pagename."の変更点");
-	my ($diff, $rollback) = $self->get_diff_html($wiki,$pagename,$generation);
+	my ($diff, $rollback) = $self->get_diff_html($wiki,$pagename, $from, $to);
 	
 	my $buf = qq|
 		<ul>
@@ -103,13 +118,13 @@ sub show_diff {
 		<pre>$diff</pre>
 	|;
 	
-	if($wiki->can_modify_page($pagename) && $rollback){
+	if($wiki->can_modify_page($pagename) && $rollback && $wiki->get_CGI->param('diff') eq ''){
 		$buf .= qq|
 			<form action="@{[$wiki->create_url()]}" method="POST">
 				<input type="submit" value="このバージョンに戻す"/>
 				<input type="hidden" name="action" value="DIFF"/>
 				<input type="hidden" name="page" value="@{[Util::escapeHTML($pagename)]}"/>
-				<input type="hidden" name="rollback" value="@{[Util::escapeHTML($generation)]}"/>
+				<input type="hidden" name="rollback" value="@{[Util::escapeHTML($from)]}"/>
 			</form>
 		|;
 	}
@@ -159,17 +174,28 @@ sub get_diff_text {
 # 差分文字列を表示用HTMLとして取得
 #==============================================================================
 sub get_diff_html {
-	my $self       = shift;
-	my $wiki       = shift;
-	my $pagename   = shift;
-	my $generation = shift;
+	my $self     = shift;
+	my $wiki     = shift;
+	my $pagename = shift;
+	my $from     = shift;
+	my $to       = shift;
 	
-	my $source1 = $wiki->get_page($pagename);
-	my $source2 = $wiki->get_backup($pagename,$generation);
+	my $source1 = '';
+	if($from ne ''){
+		$source1 = $wiki->get_backup($pagename, $from);
+	} else {
+		$source1 = $wiki->get_page($pagename);
+	}
+	my $source2 = '';
+	if($to ne ''){
+		$source2 = $wiki->get_backup($pagename, $to);
+	} else {
+		$source2 = $wiki->get_page($pagename);
+	}
 	my $format  = $wiki->get_edit_format();
 	
-	$source1 = $wiki->convert_from_fswiki($source1,$format);
-	$source2 = $wiki->convert_from_fswiki($source2,$format);
+	$source1 = $wiki->convert_from_fswiki($source1, $format);
+	$source2 = $wiki->convert_from_fswiki($source2, $format);
 	
 	my $diff_text = "";
 	my @msg1 = split(/\n/,$source1);
