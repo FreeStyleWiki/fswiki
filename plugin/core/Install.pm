@@ -17,7 +17,11 @@ sub install {
 	}
 	
 	$wiki->add_menu("ÊÔ½¸"  ,"",997,1);
-	$wiki->add_menu("º¹Ê¬"  ,"",996,1);
+	if($wiki->{storage}->backup_type eq 'all'){
+		$wiki->add_menu("ÍúÎò"  ,"",996,1);
+	} else {
+		$wiki->add_menu("º¹Ê¬"  ,"",996,1);
+	}
 	$wiki->add_menu("°ìÍ÷"  ,$wiki->create_url({ action=>"LIST" }),995);
 	$wiki->add_menu("¥Ø¥ë¥×",$wiki->create_page_url("Help"),100);
 	

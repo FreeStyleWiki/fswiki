@@ -262,7 +262,11 @@ sub hook {
 	my $cgi  = $wiki->get_CGI;
 	
 	my $pagename = $cgi->param("page");
-	$wiki->add_menu("º¹Ê¬",$wiki->create_url({ action=>"DIFF",page=>$pagename }));
+	if($wiki->{storage}->backup_type eq 'all'){
+		$wiki->add_menu("ÍúÎò",$wiki->create_url({ action=>"DIFF",page=>$pagename }));
+	} else {
+		$wiki->add_menu("º¹Ê¬",$wiki->create_url({ action=>"DIFF",page=>$pagename }));
+	}
 }
 
 1;
