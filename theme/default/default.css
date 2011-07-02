@@ -239,3 +239,19 @@ textarea.edit {
 	width: 100%;
 }
 
+div.diff {
+	border      : #888888 1px dotted;
+	padding     : 4px;
+	margin-left : 20px;
+	color       : #666666;
+}
+
+ins.diff {
+	background-color: #AAFFAA;
+	text-decoration: none;
+}
+
+del.diff {
+	background-color: #FFAAAA;
+	text-decoration: none;
+}
