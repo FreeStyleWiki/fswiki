@@ -77,14 +77,19 @@ sub show_history {
 	my $buf   = "<form><ul>\n";
 	my $count = 0;
 	my @list  = $wiki->{storage}->get_backup_list($pagename);
+	
+	if($#list == -1){
+		return "履歴はありません。";
+	}
+	
 	foreach my $time (@list){
-		$buf .= "<li>Rev.".($#list-$count + 1);
+		$buf .= "<li>";
 		if($count == 0){
-			$buf .= "<input type=\"radio\" name=\"from\" value=\"\">".
-			        "<input type=\"radio\" name=\"to\" value=\"\">";
+			$buf .= "<input type=\"radio\" name=\"from\" value=\"\" checked>".
+			        "<input type=\"radio\" name=\"to\" value=\"\" checked>";
 		} else {
-			$buf .= "<input type=\"radio\" name=\"from\" value=\"".($#list-$count)."\">".
-			        "<input type=\"radio\" name=\"to\" value=\"".($#list-$count)."\">";
+			$buf .= "<input type=\"radio\" name=\"from\" value=\"".($#list-$count+1)."\">".
+			        "<input type=\"radio\" name=\"to\" value=\"".($#list-$count+1)."\">";
 		}
 		$buf .= "<a href=\"".$wiki->create_url({ action=>"DIFF",page=>$pagename,generation=>($#list-$count) })."\">".&Util::escapeHTML($time).
 		        "</a>　<a href=\"".$wiki->create_url({ action=>"SOURCE",page=>$pagename,generation=>($#list-$count) })."\">ソース</a>".
@@ -110,12 +115,14 @@ sub show_diff {
 	$wiki->set_title($pagename."の変更点");
 	my ($diff, $rollback) = $self->get_diff_html($wiki,$pagename, $from, $to);
 	
+	$diff =~ s/\n/<br>/g;
+	
 	my $buf = qq|
 		<ul>
 		  <li>追加された行は<ins class="diff">このように</ins>表示されます。</li>
 		  <li>削除された行は<del class="diff">このように</del>表示されます。</li>
 		</ul>
-		<pre>$diff</pre>
+		<div class="diff">$diff</div>
 	|;
 	
 	if($wiki->can_modify_page($pagename) && $rollback && $wiki->get_CGI->param('diff') eq ''){
@@ -198,10 +205,15 @@ sub get_diff_html {
 	$source2 = $wiki->convert_from_fswiki($source2, $format);
 	
 	my $diff_text = "";
+=pod
 	my @msg1 = split(/\n/,$source1);
 	return "ページが大きすぎるため差分を表示できません。" if($#msg1 >= 999);
 	my @msg2 = split(/\n/,$source2);
 	return "ページが大きすぎるため差分を表示できません。" if($#msg2 >= 999);
+=cut
+	my @msg1 = _str_jfold($source1, 1);
+	my @msg2 = _str_jfold($source2, 1);
+	
 	my $msgrefA = \@msg2;
 	my $msgrefB = \@msg1;
 	
@@ -209,19 +221,35 @@ sub get_diff_html {
 		{
 			MATCH => sub {
 				my ($a, $b) = @_;
-				$diff_text .= Util::escapeHTML($msgrefA->[$a])."\n";
+				$diff_text .= Util::escapeHTML($msgrefA->[$a]);
 			},
 			DISCARD_A => sub {
 				my ($a, $b) = @_;
-				$diff_text .= "<del class=\"diff\">".Util::escapeHTML($msgrefA->[$a])."</del>\n";
+				$diff_text .= "<del class=\"diff\">".Util::escapeHTML($msgrefA->[$a])."</del><wbr>";
 			},
 			DISCARD_B => sub {
 				my ($a, $b) = @_;
-				$diff_text .= "<ins class=\"diff\">".Util::escapeHTML($msgrefB->[$b])."</ins>\n";
+				$diff_text .= "<ins class=\"diff\">".Util::escapeHTML($msgrefB->[$b])."</ins><wbr>";
 			}
 		});
 	
 	return ($diff_text, $source2 ne "");
+}
+
+#==============================================================================
+# 文字列を指定文字数を分割
+#==============================================================================
+sub _str_jfold {
+  my $str    = shift;       #指定文字列
+  my $byte   = shift;       #指定バイト
+  my $j      = new Jcode($str);
+  my @result = ();
+
+  foreach my $buff ( $j->jfold($byte) ){
+    push(@result, $buff);
+  }
+
+  return(@result);
 }
 
 #==============================================================================
