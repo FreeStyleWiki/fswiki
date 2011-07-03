@@ -82,6 +82,23 @@ sub show_history {
 		return "履歴はありません。";
 	}
 	
+	# editlogプラグインのログから編集者のユーザ名を取得
+	my $editlog = {};
+	if($wiki->config('log_dir') ne "" && -e $wiki->config('log_dir')."/useredit.log"){
+		open(DATA,$wiki->config('log_dir')."/useredit.log") or die $!;
+		while(<DATA>){
+			my($date, $time, $unixtime, $action, $subject, $id) = split(" ",$_);
+			if($subject eq $pagename){
+				if($id eq ''){
+					$editlog->{$unixtime} = 'anonymous';
+				} else {
+					$editlog->{$unixtime} = $id;
+				}
+			}
+		}
+		close(DATA);
+	}
+	
 	foreach my $time (@list){
 		$buf .= "<li>";
 		if($count == 0){
@@ -91,9 +108,14 @@ sub show_history {
 			$buf .= "<input type=\"radio\" name=\"from\" value=\"".($#list-$count+1)."\">".
 			        "<input type=\"radio\" name=\"to\" value=\"".($#list-$count+1)."\">";
 		}
-		$buf .= "<a href=\"".$wiki->create_url({ action=>"DIFF",page=>$pagename,generation=>($#list-$count) })."\">".&Util::escapeHTML($time).
-		        "</a>　<a href=\"".$wiki->create_url({ action=>"SOURCE",page=>$pagename,generation=>($#list-$count) })."\">ソース</a>".
-		        "</li>\n";
+		$buf .= "<a href=\"".$wiki->create_url({ action=>"DIFF",page=>$pagename,generation=>($#list-$count) })."\">".&Util::format_date($time).
+		        "</a> <a href=\"".$wiki->create_url({ action=>"SOURCE",page=>$pagename,generation=>($#list-$count) })."\">ソース</a>";
+		        
+		if(defined($editlog->{$time})){
+			$buf .= " by ".$editlog->{$time};
+		}
+		
+		$buf .=  "</li>\n";
 		$count++;
 	}
 	return $buf."</ul>".
