@@ -44,7 +44,7 @@ sub do_action {
 			return $self->show_diff($wiki, $pagename, $cgi->param('from'), $cgi->param('to'));
 		}
 	} else {
-		return $self->show_diff($wiki, $pagename, 0);
+		return $self->show_diff($wiki, $pagename, '', 0);
 	}
 }
 
@@ -141,8 +141,8 @@ sub show_diff {
 	
 	my $buf = qq|
 		<ul>
-		  <li>追加された行は<ins class="diff">このように</ins>表示されます。</li>
-		  <li>削除された行は<del class="diff">このように</del>表示されます。</li>
+		  <li>追加された部分は<ins class="diff">このように</ins>表示されます。</li>
+		  <li>削除された部分は<del class="diff">このように</del>表示されます。</li>
 		</ul>
 		<div class="diff">$diff</div>
 	|;
