@@ -71,12 +71,12 @@ sub rollback {
 sub show_history {
 	my $self = shift;
 	my $wiki = shift;
-	my $pagename = shift;
+	my $page = shift;
 	
-	$wiki->set_title($pagename."の変更履歴");
+	$wiki->set_title("$pageの変更履歴");
 	my $buf   = "<form><ul>\n";
 	my $count = 0;
-	my @list  = $wiki->{storage}->get_backup_list($pagename);
+	my @list  = $wiki->{storage}->get_backup_list($page);
 	
 	if($#list == -1){
 		return "履歴はありません。";
@@ -88,7 +88,7 @@ sub show_history {
 		open(DATA,$wiki->config('log_dir')."/useredit.log") or die $!;
 		while(<DATA>){
 			my($date, $time, $unixtime, $action, $subject, $id) = split(" ",$_);
-			if($subject eq $pagename){
+			if($subject eq $page){
 				if($id eq ''){
 					$editlog->{$unixtime} = 'anonymous';
 				} else {
@@ -108,8 +108,8 @@ sub show_history {
 			$buf .= "<input type=\"radio\" name=\"from\" value=\"".($#list-$count+1)."\">".
 			        "<input type=\"radio\" name=\"to\" value=\"".($#list-$count+1)."\">";
 		}
-		$buf .= "<a href=\"".$wiki->create_url({ action=>"DIFF",page=>$pagename,generation=>($#list-$count) })."\">".&Util::format_date($time).
-		        "</a> <a href=\"".$wiki->create_url({ action=>"SOURCE",page=>$pagename,generation=>($#list-$count) })."\">ソース</a>";
+		$buf .= "<a href=\"".$wiki->create_url({ action=>"DIFF",page=>$page,generation=>($#list-$count) })."\">".&Util::format_date($time).
+		        "</a> <a href=\"".$wiki->create_url({ action=>"SOURCE",page=>$page,generation=>($#list-$count) })."\">ソース</a>";
 		        
 		if(defined($editlog->{$time})){
 			$buf .= " by ".$editlog->{$time};
@@ -119,7 +119,7 @@ sub show_history {
 		$count++;
 	}
 	return $buf."</ul>".
-	"<input type=\"hidden\" name=\"page\" value=\"".Util::escapeHTML($pagename)."\">".
+	"<input type=\"hidden\" name=\"page\" value=\"".Util::escapeHTML($page)."\">".
 	"<input type=\"hidden\" name=\"action\" value=\"DIFF\">".
 	"<input type=\"submit\" name=\"diff\" value=\"選択したリビジョン間の差分を表示\"></form>\n";
 }
@@ -128,14 +128,14 @@ sub show_history {
 # 差分を表示
 #==============================================================================
 sub show_diff {
-	my $self     = shift;
-	my $wiki     = shift;
-	my $pagename = shift;
-	my $from     = shift;
-	my $to       = shift;
+	my $self = shift;
+	my $wiki = shift;
+	my $page = shift;
+	my $from = shift;
+	my $to   = shift;
 	
-	$wiki->set_title($pagename."の変更点");
-	my ($diff, $rollback) = $self->get_diff_html($wiki,$pagename, $from, $to);
+	$wiki->set_title("$pageの変更点");
+	my ($diff, $rollback) = $self->get_diff_html($wiki,$page, $from, $to);
 	
 	$diff =~ s/\n/<br>/g;
 	
@@ -147,12 +147,12 @@ sub show_diff {
 		<div class="diff">$diff</div>
 	|;
 	
-	if($wiki->can_modify_page($pagename) && $rollback && $wiki->get_CGI->param('diff') eq ''){
+	if($wiki->can_modify_page($page) && $rollback && $wiki->get_CGI->param('diff') eq ''){
 		$buf .= qq|
 			<form action="@{[$wiki->create_url()]}" method="POST">
 				<input type="submit" value="このバージョンに戻す"/>
 				<input type="hidden" name="action" value="DIFF"/>
-				<input type="hidden" name="page" value="@{[Util::escapeHTML($pagename)]}"/>
+				<input type="hidden" name="page" value="@{[Util::escapeHTML($page)]}"/>
 				<input type="hidden" name="rollback" value="@{[Util::escapeHTML($from)]}"/>
 			</form>
 		|;
@@ -165,17 +165,17 @@ sub show_diff {
 # 差分文字列を取得
 #==============================================================================
 sub get_diff_text {
-	my $self       = shift;
-	my $wiki       = shift;
-	my $pagename   = shift;
-	my $generation = shift;
+	my $self = shift;
+	my $wiki = shift;
+	my $page = shift;
+	my $gen  = shift;
 	
-	my $source1 = $wiki->get_page($pagename);
-	my $source2 = $wiki->get_backup($pagename,$generation);
+	my $source1 = $wiki->get_page($page);
+	my $source2 = $wiki->get_backup($page, $gen);
 	my $format  = $wiki->get_edit_format();
 	
-	$source1 = $wiki->convert_from_fswiki($source1,$format);
-	$source2 = $wiki->convert_from_fswiki($source2,$format);
+	$source1 = $wiki->convert_from_fswiki($source1, $format);
+	$source2 = $wiki->convert_from_fswiki($source2, $format);
 	
 	my $diff_text = "";
 	my @msg1 = split(/\n/,$source1);
@@ -203,23 +203,23 @@ sub get_diff_text {
 # 差分文字列を表示用HTMLとして取得
 #==============================================================================
 sub get_diff_html {
-	my $self     = shift;
-	my $wiki     = shift;
-	my $pagename = shift;
-	my $from     = shift;
-	my $to       = shift;
+	my $self = shift;
+	my $wiki = shift;
+	my $page = shift;
+	my $from = shift;
+	my $to   = shift;
 	
 	my $source1 = '';
 	if($from ne ''){
-		$source1 = $wiki->get_backup($pagename, $from);
+		$source1 = $wiki->get_backup($page, $from);
 	} else {
-		$source1 = $wiki->get_page($pagename);
+		$source1 = $wiki->get_page($page);
 	}
 	my $source2 = '';
 	if($to ne ''){
-		$source2 = $wiki->get_backup($pagename, $to);
+		$source2 = $wiki->get_backup($page, $to);
 	} else {
-		$source2 = $wiki->get_page($pagename);
+		$source2 = $wiki->get_page($page);
 	}
 	my $format  = $wiki->get_edit_format();
 	
@@ -282,12 +282,11 @@ sub hook {
 	my $self = shift;
 	my $wiki = shift;
 	my $cgi  = $wiki->get_CGI;
-	
-	my $pagename = $cgi->param("page");
+	my $page = $cgi->param("page");
 	if($wiki->{storage}->backup_type eq 'all'){
-		$wiki->add_menu("履歴",$wiki->create_url({ action=>"DIFF",page=>$pagename }));
+		$wiki->add_menu("履歴",$wiki->create_url({ action=>"DIFF",page=>$page }));
 	} else {
-		$wiki->add_menu("差分",$wiki->create_url({ action=>"DIFF",page=>$pagename }));
+		$wiki->add_menu("差分",$wiki->create_url({ action=>"DIFF",page=>$page }));
 	}
 }
 
