@@ -455,7 +455,7 @@ sub get_backup_list {
 		
 		foreach my $file (@files){
 			my @status = stat($file);
-			push(@datelist,Util::format_date($status[9]));
+			push(@datelist, $status[9]);
 		}
 		
 		return @datelist;
