@@ -162,6 +162,11 @@ div.sidebar ul,div.sidebar li {
 	margin-left  : 10pt;
 }
 
+div.sidebar ol,div.sidebar li {
+	padding-left : 0pt;
+	margin-left  : 10pt;
+}
+
 div.sidebar h2,div.sidebar h3,div.sidebar h4 {
 	margin-top : 0px;
 }
