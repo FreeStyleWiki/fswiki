@@ -226,18 +226,24 @@ sub get_diff_html {
 	$source1 = $wiki->convert_from_fswiki($source1, $format);
 	$source2 = $wiki->convert_from_fswiki($source2, $format);
 	
-	my $diff_text = "";
-=pod
-	my @msg1 = split(/\n/,$source1);
-	return "ページが大きすぎるため差分を表示できません。" if($#msg1 >= 999);
-	my @msg2 = split(/\n/,$source2);
-	return "ページが大きすぎるため差分を表示できません。" if($#msg2 >= 999);
-=cut
+	return (&_get_diff_html($source1, $source2), $source2 ne "");
+}
+
+#==============================================================================
+# 差分HTMLを生成する関数
+#==============================================================================
+sub _get_diff_html {
+	my $self = shift;
+	my $source1 = shift;
+	my $source2 = shift;
+	
 	my @msg1 = _str_jfold($source1, 1);
 	my @msg2 = _str_jfold($source2, 1);
 	
 	my $msgrefA = \@msg2;
 	my $msgrefB = \@msg1;
+	
+	my $diff_text = "";
 	
 	traverse_sequences($msgrefA, $msgrefB,
 		{
@@ -255,7 +261,7 @@ sub get_diff_html {
 			}
 		});
 	
-	return ($diff_text, $source2 ne "");
+	return $diff_text;
 }
 
 #==============================================================================
