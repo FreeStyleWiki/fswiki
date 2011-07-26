@@ -5,6 +5,7 @@
 ###############################################################################
 package plugin::core::EditPage;
 use strict;
+use plugin::core::Diff;
 #==============================================================================
 # コンストラクタ
 #==============================================================================
@@ -46,36 +47,55 @@ sub do_action {
 	#--------------------------------------------------------------------------
 	# 保存処理
 	if($cgi->param("save") ne ""){
-		if($wiki->page_exists($pagename)){
-			if($cgi->param("lastmodified") != $time){
-				return $wiki->error("ページは既に別のユーザによって更新されています。");
-			}
-		}
-		#my $save_content = $content;
-		my $mode = $wiki->get_edit_format();
-		my $save_content = $wiki->convert_to_fswiki($content,$mode);
-
-		# パート編集の場合
-		if($artno ne ""){
-			$save_content = &make_save_source($wiki->get_page($pagename),$save_content,$artno,$wiki);
-		}
-		# FrontPageは削除不可
-		if($pagename eq $wiki->config("frontpage") && $save_content eq ""){
-			$buf = "<b>".&Util::escapeHTML($wiki->config("frontpage"))."は削除することはできません。</b>\n";
-
-		# それ以外の場合は処理を実行してメッセージを返却
-		} else {
-			$wiki->save_page($pagename,$save_content,$sage);
+ 		if($wiki->page_exists($pagename) && $cgi->param("lastmodified") != $time){
+			$buf .= "<p><span class=\"error\">ページは既に別のユーザによって更新されています。</span></p>";
 			
-			if($content ne ""){
-				$wiki->redirect($pagename);
+			my $mode = $wiki->get_edit_format();
+			my $orig_source = $wiki->convert_from_fswiki($wiki->get_page($pagename), $mode);
+			my $your_source = $content;
+			$your_source =~ s/\r\n/\n/g;
+			$your_source =~ s/\r/\n/g;
+			
+			my $diff = plugin::core::Diff::_get_diff_html($wiki, $orig_source, $your_source);
+			$diff =~ s/\n/<br>/g;
+			
+			$buf .= qq|
+				<ul>
+				  <li>追加された部分は<ins class="diff">このように</ins>表示されます。</li>
+				  <li>削除された部分は<del class="diff">このように</del>表示されます。</li>
+				</ul>
+				<div class="diff">$diff</div>
+			|;
+			
+			$content = $orig_source;
+			
+		} else {
+			#my $save_content = $content;
+			my $mode = $wiki->get_edit_format();
+			my $save_content = $wiki->convert_to_fswiki($content,$mode);
+
+			# パート編集の場合
+			if($artno ne ""){
+				$save_content = &make_save_source($wiki->get_page($pagename),$save_content,$artno,$wiki);
+			}
+			# FrontPageは削除不可
+			if($pagename eq $wiki->config("frontpage") && $save_content eq ""){
+				$buf = "<b>".&Util::escapeHTML($wiki->config("frontpage"))."は削除することはできません。</b>\n";
+
+			# それ以外の場合は処理を実行してメッセージを返却
 			} else {
-				if($artno eq ""){
-					$wiki->set_title($pagename."を削除しました");
-					return Util::escapeHTML($pagename)."を削除しました。";
+				$wiki->save_page($pagename,$save_content,$sage);
+				
+				if($content ne ""){
+					$wiki->redirect($pagename);
 				} else {
-					$wiki->set_title($pagename."のパートを削除しました");
-					return Util::escapeHTML($pagename)."のパートを削除しました。";
+					if($artno eq ""){
+						$wiki->set_title($pagename."を削除しました");
+						return Util::escapeHTML($pagename)."を削除しました。";
+					} else {
+						$wiki->set_title($pagename."のパートを削除しました");
+						return Util::escapeHTML($pagename)."のパートを削除しました。";
+					}
 				}
 			}
 		}
