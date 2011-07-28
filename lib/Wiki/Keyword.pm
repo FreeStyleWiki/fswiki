@@ -381,17 +381,9 @@ sub url_anchor {
 # Wiki¥¢¥ó¥«
 #==============================================================================
 sub wiki_anchor {
-	my $self = shift;
-	my $page = shift;
-	my $name = shift;
-	
-	if($name eq ""){
-		$name = $page;
-	}
-	my $keyword = {};
-	$keyword->{word} = $name;
-	$keyword->{page} = $page;
-	push(@{$self->{keywords}},$keyword);
+	my ($self, $page, $name) = @_;
+
+	$self->{'keyword'}->{$name} = { 'type' => 'w', 'value' => $page };
 }
 
 1;
