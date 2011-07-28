@@ -1478,11 +1478,23 @@ sub get_CGI {
 # <pre>
 # $wiki-&gt;redirect(&quot;FrontPage&quot;);
 # </pre>
+# <p>
+# 第二引数にパート番号を渡すとそのパートにリダイレクトします。
+# </p>
+# <pre>
+# $wiki-&gt;redirect(&quot;FrontPage&quot;, 1);
+# </pre>
+#
 #==============================================================================
 sub redirect {
 	my $self = shift;
 	my $page = shift;
-	$self->redirectURL($self->create_page_url($page));
+	my $part = shift;
+	my $url = $self->create_page_url($page);
+	if($part){
+		$url .= "#p".Util::url_encode($part);
+	}
+	$self->redirectURL($url);
 }
 
 #==============================================================================
