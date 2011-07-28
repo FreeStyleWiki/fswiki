@@ -1491,7 +1491,7 @@ sub redirect {
 	my $page = shift;
 	my $part = shift;
 	my $url = $self->create_page_url($page);
-	if($part){
+	if($part ne ""){
 		$url .= "#p".Util::url_encode($part);
 	}
 	$self->redirectURL($url);
