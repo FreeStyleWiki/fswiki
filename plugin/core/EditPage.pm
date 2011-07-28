@@ -64,6 +64,9 @@ sub do_action {
 				  <li>追加された部分は<ins class="diff">このように</ins>表示されます。</li>
 				  <li>削除された部分は<del class="diff">このように</del>表示されます。</li>
 				</ul>
+				<p>
+				  差分を確認して再度編集を行ってください：
+				</p>
 				<div class="diff">$diff</div>
 			|;
 			
@@ -87,7 +90,7 @@ sub do_action {
 				$wiki->save_page($pagename,$save_content,$sage);
 				
 				if($content ne ""){
-					$wiki->redirect($pagename);
+					$wiki->redirect($pagename, $artno);
 				} else {
 					if($artno eq ""){
 						$wiki->set_title($pagename."を削除しました");
