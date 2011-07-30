@@ -514,9 +514,11 @@ sub l_plugin {
 # イメージ
 #==============================================================================
 sub l_image {
-	my $self = shift;
-	my $page = shift;
-	my $file = shift;
+	my $self   = shift;
+	my $page   = shift;
+	my $file   = shift;
+	my $width  = shift;
+	my $height = shift;
 	my $wiki = $self->{wiki};
 	
 	if($self->{para}==1){
@@ -529,7 +531,12 @@ sub l_image {
 	$self->end_table;
 	$self->end_quote;
 	
-	$self->{html} .= "<div><img src=\"".$wiki->create_url({action=>"ATTACH",page=>$page,file=>$file})."\"></div>\n";
+	$self->{html} .= "<div class=\"image\">";
+	$self->{html} .= "<img src=\"".$wiki->create_url({action=>"ATTACH",page=>$page,file=>$file})."\"";
+	$self->{html} .= " width=\"$width\"" if ($width ne "");
+	$self->{html} .= " height=\"$height\"" if ($height ne "");
+	$self->{html} .= "/>";
+	$self->{html} .= "</div>\n";
 }
 
 #==============================================================================
