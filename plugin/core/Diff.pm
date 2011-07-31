@@ -233,7 +233,6 @@ sub get_diff_html {
 # 差分HTMLを生成する関数
 #==============================================================================
 sub _get_diff_html {
-	my $self = shift;
 	my $source1 = shift;
 	my $source2 = shift;
 	
