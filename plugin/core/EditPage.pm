@@ -56,7 +56,7 @@ sub do_action {
 			$your_source =~ s/\r\n/\n/g;
 			$your_source =~ s/\r/\n/g;
 			
-			my $diff = plugin::core::Diff::_get_diff_html($wiki, $orig_source, $your_source);
+			my $diff = plugin::core::Diff::_get_diff_html($orig_source, $your_source);
 			$diff =~ s/\n/<br>/g;
 			
 			$buf .= qq|
