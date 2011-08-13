@@ -34,9 +34,11 @@ sub do_action {
 	}
 	if($cgi->param('rollback') ne ''){
 		return $self->rollback($wiki, $pagename, $cgi->param('rollback'));
+		
 	} elsif($wiki->{storage}->backup_type eq 'all'){
 		if($cgi->param('generation') eq '' && $cgi->param('diff') eq ''){
 			return $self->show_history($wiki, $pagename);
+			
 		} else {
 			if($cgi->param('generation') ne ''){
 				return $self->show_diff($wiki, $pagename, '', $cgi->param('generation'));
@@ -215,12 +217,24 @@ sub get_diff_html {
 	} else {
 		$source1 = $wiki->get_page($page);
 	}
+	if($wiki->config('diff_max') ne '' && $wiki->config('diff_max') > 0){
+		if(length($source1) > $wiki->config('diff_max')){
+			return ('ページサイズが大きいため差分を表示できません。', 0);
+		}
+	}
+	
 	my $source2 = '';
 	if($to ne ''){
 		$source2 = $wiki->get_backup($page, $to);
 	} else {
 		$source2 = $wiki->get_page($page);
 	}
+	if($wiki->config('diff_max') ne '' && $wiki->config('diff_max') > 0){
+		if(length($source2) > $wiki->config('diff_max')){
+			return ('ページサイズが大きいため差分を表示できません。', 0);
+		}
+	}
+	
 	my $format  = $wiki->get_edit_format();
 	
 	$source1 = $wiki->convert_from_fswiki($source1, $format);

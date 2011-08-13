@@ -47,7 +47,12 @@ sub do_action {
 	#--------------------------------------------------------------------------
 	# 保存処理
 	if($cgi->param("save") ne ""){
- 		if($wiki->page_exists($pagename) && $cgi->param("lastmodified") != $time){
+		if($wiki->config('page_max') ne '' && $wiki->config('page_max') > 0){
+			if(length($content) > $wiki->config('page_max')){
+				return $wiki->error('ページが保存可能な最大サイズを超えています。');
+			}
+		}
+		if($wiki->page_exists($pagename) && $cgi->param("lastmodified") != $time){
 			$buf .= "<p><span class=\"error\">ページは既に別のユーザによって更新されています。</span></p>";
 			
 			my $mode = $wiki->get_edit_format();
@@ -105,6 +110,11 @@ sub do_action {
 	#--------------------------------------------------------------------------
 	# プレビュー処理
 	} elsif($cgi->param("preview") ne ""){
+		if($wiki->config('page_max') ne '' && $wiki->config('page_max') > 0){
+			if(length($content) > $wiki->config('page_max')){
+				return $wiki->error('ページが保存可能な最大サイズを超えています。');
+			}
+		}
 		$time = $cgi->param("lastmodified");
 		$buf = "以下のプレビューを確認してよろしければ「保存」ボタンを押してください。<br>";
 		if($content eq ""){
