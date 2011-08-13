@@ -35,6 +35,8 @@ BEGIN {
 #===============================================================================
 sub url_encode {
 	my $retstr = shift;
+	$retstr = Jcode->new($retstr)->euc;
+	
 	$retstr =~ s/([^ 0-9A-Za-z])/sprintf("%%%.2X", ord($1))/eg;
 	$retstr =~ tr/ /+/;
 	return $retstr;
@@ -98,10 +100,8 @@ sub make_filename {
 #===============================================================================
 sub escapeHTML {
 	my($retstr) = shift;
-	
-	&Jcode::convert(\$retstr,"utf8");
-	&Jcode::convert(\$retstr,"euc");
-	
+	$retstr = Jcode->new($retstr)->euc;
+
 	my %table = (
 		'&' => '&amp;',
 		'"' => '&quot;',
