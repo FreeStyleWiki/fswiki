@@ -98,6 +98,10 @@ sub make_filename {
 #===============================================================================
 sub escapeHTML {
 	my($retstr) = shift;
+	
+	&Jcode::convert(\$retstr,"utf8");
+	&Jcode::convert(\$retstr,"euc");
+	
 	my %table = (
 		'&' => '&amp;',
 		'"' => '&quot;',
