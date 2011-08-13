@@ -236,29 +236,62 @@ sub _get_diff_html {
 	my $source1 = shift;
 	my $source2 = shift;
 	
-	my @msg1 = _str_jfold($source1, 1);
-	my @msg2 = _str_jfold($source2, 1);
-	
-	my $msgrefA = \@msg2;
-	my $msgrefB = \@msg1;
+	my @lines1 = split(/\n/,$source1);
+	my @lines2 = split(/\n/,$source2);
+	my $linesrefA = \@lines2;
+	my $linesrefB = \@lines1;
 	
 	my $diff_text = "";
+	my $del_buffer = "";
 	
-	traverse_sequences($msgrefA, $msgrefB,
-		{
-			MATCH => sub {
-				my ($a, $b) = @_;
-				$diff_text .= Util::escapeHTML($msgrefA->[$a]);
-			},
-			DISCARD_A => sub {
-				my ($a, $b) = @_;
-				$diff_text .= "<del class=\"diff\">".Util::escapeHTML($msgrefA->[$a])."</del><wbr>";
-			},
-			DISCARD_B => sub {
-				my ($a, $b) = @_;
-				$diff_text .= "<ins class=\"diff\">".Util::escapeHTML($msgrefB->[$b])."</ins><wbr>";
+	traverse_sequences($linesrefA, $linesrefB, {
+		MATCH => sub {
+			my ($a, $b) = @_;
+			if($del_buffer ne ''){
+				$diff_text .= "<del class=\"diff\">".Util::escapeHTML($del_buffer)."</del>\n";
+				$del_buffer = '';
 			}
-		});
+			$diff_text .= Util::escapeHTML($linesrefA->[$a])."\n";
+		},
+		DISCARD_A => sub {
+			my ($a, $b) = @_;
+			$del_buffer .= $linesrefA->[$a]."\n";
+		},
+		DISCARD_B => sub {
+			my ($a, $b) = @_;
+			if($del_buffer eq ''){
+				$diff_text .= "<ins class=\"diff\">".Util::escapeHTML($linesrefB->[$b])."</ins>\n";
+				
+			} else {
+				my @msg1 = _str_jfold($linesrefB->[$b]."\n", 1);
+				my @msg2 = _str_jfold($del_buffer, 1);
+				my $msgrefA = \@msg2;
+				my $msgrefB = \@msg1;
+				
+				traverse_sequences($msgrefA, $msgrefB, {
+					MATCH => sub {
+						my ($a, $b) = @_;
+						$diff_text .= Util::escapeHTML($msgrefA->[$a]);
+					},
+					DISCARD_A => sub {
+						my ($a, $b) = @_;
+						$diff_text .= "<del class=\"diff\">".Util::escapeHTML($msgrefA->[$a])."</del><wbr>";
+					},
+					DISCARD_B => sub {
+						my ($a, $b) = @_;
+						$diff_text .= "<ins class=\"diff\">".Util::escapeHTML($msgrefB->[$b])."</ins><wbr>";
+					}
+				});
+				
+				$del_buffer = '';
+			}
+		}
+	});
+		
+	if($del_buffer ne ''){
+		$diff_text .= "<del class=\"diff\">".Util::escapeHTML($del_buffer)."</del>\n";
+		$del_buffer = '';
+	}
 	
 	return $diff_text;
 }
