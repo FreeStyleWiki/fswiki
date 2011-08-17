@@ -162,7 +162,7 @@ sub exists_interwiki {
 			if ($enc ne q{}) {
 				&Jcode::convert(\$param, $enc);
 			}
-			$self->{g_url} = $keyword->{url}.Util::url_encode($param);
+			$self->{g_url} = $keyword->{url}._url_encode($param);
 			return 1;
 		}
 
@@ -175,11 +175,19 @@ sub exists_interwiki {
 			if ($enc ne q{}) {
 				&Jcode::convert(\$param, $enc);
 			}
-			$self->{g_url} = $keyword->{url}.Util::url_encode($param);
+			$self->{g_url} = $keyword->{url}._url_encode($param);
 			return 1;
 		}
 	}
 	return 0;
 }
+
+sub _url_encode {
+	my $retstr = shift;
+	$retstr =~ s/([^ 0-9A-Za-z])/sprintf("%%%.2X", ord($1))/eg;
+	$retstr =~ tr/ /+/;
+	return $retstr;
+}
+
 
 1;
