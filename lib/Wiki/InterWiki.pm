@@ -103,7 +103,7 @@ sub _parse_line {
 	    || $source =~ /\[([^\[]+?)\|((\/|\.\/|\.\.\/)+[a-zA-Z0-9\.,%~^_+\-%\/\?\(\)!\$&=:;\*#\@']*)\]/) {
 		my $label = $1;
 		my $url   = $2;
-		my $enc   = "";
+		my $enc   = "euc";
 		$self->add_inter_wiki($url,$label,$enc);
 	}
 	# 任意のURLリンク
@@ -117,7 +117,7 @@ sub _parse_line {
 	elsif ($source =~ /\[([^\[]+?)\|(.+?)\]/) {
 		my $label = $1;
 		my $url   = $2;
-		my $enc   = "";
+		my $enc   = "euc";
 		$self->add_inter_wiki($url,$label,$enc);
 
 	}
@@ -159,9 +159,7 @@ sub exists_interwiki {
 			my $enc   = $keyword->{enc};
 			my $param = $1;
 			$self->{g_label} = $keyword->{label}.':'.$param;
-			if ($enc ne q{}) {
-				&Jcode::convert(\$param, $enc);
-			}
+			&Jcode::convert(\$param, $enc);
 			$self->{g_url} = $keyword->{url}._url_encode($param);
 			return 1;
 		}
@@ -172,9 +170,7 @@ sub exists_interwiki {
 			$self->{g_label} = $1;
 			my $enc   = $keyword->{enc};
 			my $param = $2;
-			if ($enc ne q{}) {
-				&Jcode::convert(\$param, $enc);
-			}
+			&Jcode::convert(\$param, $enc);
 			$self->{g_url} = $keyword->{url}._url_encode($param);
 			return 1;
 		}
