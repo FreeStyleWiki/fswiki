@@ -28,7 +28,10 @@ sub hook {
 	my $backup   = $wiki->get_backup($pagename);
 	
 	my @log;
-	my $now = time();
+	my $now = $wiki->get_last_modified($pagename);
+	if($now eq ''){
+		$now = time();
+	}
 	push ( @log, format_date( $now ) );
 	push ( @log, $now );
 	if($content eq ""){
