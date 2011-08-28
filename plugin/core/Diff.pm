@@ -85,6 +85,7 @@ sub show_history {
 	}
 	
 	# editlogプラグインのログから編集者のユーザ名を取得
+	# （editlogの日付がズレることがあったので1秒以内の更新は同じ履歴とみなすようにしてます）
 	my $editlog = {};
 	if($wiki->config('log_dir') ne "" && -e $wiki->config('log_dir')."/useredit.log"){
 		open(DATA,$wiki->config('log_dir')."/useredit.log") or die $!;
@@ -92,9 +93,9 @@ sub show_history {
 			my($date, $time, $unixtime, $action, $subject, $id) = split(" ",$_);
 			if($subject eq $page){
 				if($id eq ''){
-					$editlog->{$unixtime} = 'anonymous';
+					$editlog->{substr($unixtime, 0, length($unixtime) - 4)} = 'anonymous';
 				} else {
-					$editlog->{$unixtime} = $id;
+					$editlog->{substr($unixtime, 0, length($unixtime) - 4)} = $id;
 				}
 			}
 		}
@@ -113,8 +114,8 @@ sub show_history {
 		$buf .= "<a href=\"".$wiki->create_url({ action=>"DIFF",page=>$page,generation=>($#list-$count) })."\">".&Util::format_date($time).
 		        "</a> <a href=\"".$wiki->create_url({ action=>"SOURCE",page=>$page,generation=>($#list-$count) })."\">ソース</a>";
 		        
-		if(defined($editlog->{$time})){
-			$buf .= " by ".$editlog->{$time};
+		if(defined($editlog->{substr($time, 0, length($time) - 4)})){
+			$buf .= " by ".$editlog->{substr($time, 0, length($time) - 4)};
 		}
 		
 		$buf .=  "</li>\n";
