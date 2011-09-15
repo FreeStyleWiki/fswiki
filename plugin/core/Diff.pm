@@ -36,18 +36,38 @@ sub do_action {
 		return $self->rollback($wiki, $pagename, $cgi->param('rollback'));
 		
 	} elsif($wiki->{storage}->backup_type eq 'all'){
-		if($cgi->param('generation') eq '' && $cgi->param('diff') eq ''){
+		my $login = $wiki->get_login_info();
+		if(defined($login) && $login->{'type'} == 0 && $cgi->param('clear') ne ''){
+			# 履歴のクリア
+			$self->clear_history($wiki, $pagename);
+			return $self->show_history($wiki, $pagename);
+			
+		} elsif($cgi->param('generation') eq '' && $cgi->param('diff') eq ''){
+			# 履歴を表示
 			return $self->show_history($wiki, $pagename);
 			
 		} else {
 			if($cgi->param('generation') ne ''){
+				# 指定したリビジョンでの差分を表示
 				return $self->show_diff($wiki, $pagename, '', $cgi->param('generation'));
 			}
+			# 指定したリビジョン間の差分を表示
 			return $self->show_diff($wiki, $pagename, $cgi->param('from'), $cgi->param('to'));
 		}
 	} else {
+		# 最後の更新の差分を表示
 		return $self->show_diff($wiki, $pagename, '', 0);
 	}
+}
+
+#==============================================================================
+# 履歴のクリア
+#==============================================================================
+sub clear_history {
+	my $self = shift;
+	my $wiki = shift;
+	my $page = shift;
+	$wiki->{storage}->delete_backup_files($wiki, $page);
 }
 
 #==============================================================================
@@ -121,10 +141,17 @@ sub show_history {
 		$buf .=  "</li>\n";
 		$count++;
 	}
-	return $buf."</ul>".
-	"<input type=\"hidden\" name=\"page\" value=\"".Util::escapeHTML($page)."\">".
-	"<input type=\"hidden\" name=\"action\" value=\"DIFF\">".
-	"<input type=\"submit\" name=\"diff\" value=\"選択したリビジョン間の差分を表示\"></form>\n";
+	
+	$buf .= "</ul>".
+		"<input type=\"hidden\" name=\"page\" value=\"".Util::escapeHTML($page)."\">".
+		"<input type=\"hidden\" name=\"action\" value=\"DIFF\">".
+		"<input type=\"submit\" name=\"diff\" value=\"選択したリビジョン間の差分を表示\">\n";
+	
+	my $login = $wiki->get_login_info();
+	if(defined($login) && $login->{'type'} == 0){
+		$buf .= "<input type=\"submit\" name=\"clear\" value=\"履歴を削除\">\n";
+	}
+	return $buf."</form>\n";
 }
 
 #==============================================================================
