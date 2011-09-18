@@ -56,7 +56,12 @@ sub do_action {
 			$buf .= "<p><span class=\"error\">ページは既に別のユーザによって更新されています。</span></p>";
 			
 			my $mode = $wiki->get_edit_format();
-			my $orig_source = $wiki->convert_from_fswiki($wiki->get_page($pagename), $mode);
+			my $orig_source = undef;
+			if($artno eq ""){
+				$orig_source = $wiki->convert_from_fswiki($wiki->get_page($pagename), $mode);
+			} else {
+				$orig_source = $wiki->convert_from_fswiki(&read_by_part($wiki->get_page($pagename), $artno), $mode);
+			}
 			my $your_source = $content;
 			$your_source =~ s/\r\n/\n/g;
 			$your_source =~ s/\r/\n/g;
@@ -70,7 +75,7 @@ sub do_action {
 				  <li>削除された部分は<del class="diff">このように</del>表示されます。</li>
 				</ul>
 				<p>
-				  差分を確認して再度編集を行ってください：
+				  最新版との差分を確認して再度編集を行ってください：
 				</p>
 				<div class="diff">$diff</div>
 			|;
@@ -84,7 +89,7 @@ sub do_action {
 
 			# パート編集の場合
 			if($artno ne ""){
-				$save_content = &make_save_source($wiki->get_page($pagename),$save_content,$artno,$wiki);
+				$save_content = &make_save_source($wiki->get_page($pagename), $save_content, $artno, $wiki);
 			}
 			# FrontPageは削除不可
 			if($pagename eq $wiki->config("frontpage") && $save_content eq ""){
@@ -92,7 +97,7 @@ sub do_action {
 
 			# それ以外の場合は処理を実行してメッセージを返却
 			} else {
-				$wiki->save_page($pagename,$save_content,$sage);
+				$wiki->save_page($pagename, $save_content, $sage);
 				
 				if($content ne ""){
 					$wiki->redirect($pagename, $artno);
@@ -107,6 +112,42 @@ sub do_action {
 				}
 			}
 		}
+	#--------------------------------------------------------------------------
+	# 差分確認処理
+	} elsif($cgi->param("diff") ne ""){
+		if($wiki->config('page_max') ne '' && $wiki->config('page_max') > 0){
+			if(length($content) > $wiki->config('page_max')){
+				return $wiki->error('ページが保存可能な最大サイズを超えています。');
+			}
+		}
+		$time = $cgi->param("lastmodified");
+		
+		my $mode = $wiki->get_edit_format();
+		my $orig_source = undef;
+		if($artno eq ""){
+			$orig_source = $wiki->convert_from_fswiki($wiki->get_page($pagename), $mode);
+		} else {
+			$orig_source = $wiki->convert_from_fswiki(&read_by_part($wiki->get_page($pagename), $artno), $mode);
+		}
+		my $your_source = $content;
+		$your_source =~ s/\r\n/\n/g;
+		$your_source =~ s/\r/\n/g;
+		
+		$buf .= qq|
+			<ul>
+			  <li>追加された部分は<ins class="diff">このように</ins>表示されます。</li>
+			  <li>削除された部分は<del class="diff">このように</del>表示されます。</li>
+			</ul>
+		|;
+			
+		if($orig_source eq $your_source){
+			$buf .= '<p class="error">差分はありません。</p>';
+		} else {
+			my $diff = plugin::core::Diff::_get_diff_html($your_source, $orig_source);
+			$diff =~ s/\n/<br>/g;
+			$buf .= qq|<div class="diff">$diff</div>|;
+		}
+		
 	#--------------------------------------------------------------------------
 	# プレビュー処理
 	} elsif($cgi->param("preview") ne ""){
@@ -136,7 +177,7 @@ sub do_action {
 		if($artno eq ""){
 			$content = $wiki->get_page($pagename);
 		} else {
-			$content = &read_by_part($wiki->get_page($pagename),$artno);
+			$content = &read_by_part($wiki->get_page($pagename), $artno);
 		}
 	} elsif($template ne ""){
 		#テンプレートを指定された場合
@@ -152,14 +193,14 @@ sub do_action {
 
 	$tmpl->param({SCRIPT_NAME   => $wiki->create_url(),
 				  PAGE_NAME     => $pagename,
-				  CONTENT       => $wiki->convert_from_fswiki($content,$format),
+				  CONTENT       => $wiki->convert_from_fswiki($content, $format),
 				  LAST_MODIFIED => $time,
 				  ACTION        => 'EDIT',
 				  EXISTS_PAGE   => $wiki->page_exists($pagename),
 				  SAGE          => $sage});
 	
 	if($artno ne ""){
-		$tmpl->param(OPTIONAL_PARAMS=>[{NAME=>'artno',VALUE=>$artno}]);
+		$tmpl->param(OPTIONAL_PARAMS=>[{NAME=>'artno', VALUE=>$artno}]);
 	}
 
 	$buf .= $tmpl->output();
