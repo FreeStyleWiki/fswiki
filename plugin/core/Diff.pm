@@ -125,11 +125,11 @@ sub show_history {
 	foreach my $time (@list){
 		$buf .= "<li>";
 		if($count == 0){
-			$buf .= "<input type=\"radio\" name=\"from\" value=\"\" checked>".
-			        "<input type=\"radio\" name=\"to\" value=\"\" checked>";
+			$buf .= "<input type=\"radio\" name=\"from\" value=\"".($#list-$count)."\" checked>".
+			        "<input type=\"radio\" name=\"to\" value=\"".($#list-$count)."\" checked>";
 		} else {
-			$buf .= "<input type=\"radio\" name=\"from\" value=\"".($#list-$count+1)."\">".
-			        "<input type=\"radio\" name=\"to\" value=\"".($#list-$count+1)."\">";
+			$buf .= "<input type=\"radio\" name=\"from\" value=\"".($#list-$count)."\">".
+			        "<input type=\"radio\" name=\"to\" value=\"".($#list-$count)."\">";
 		}
 		$buf .= "<a href=\"".$wiki->create_url({ action=>"DIFF",page=>$page,generation=>($#list-$count) })."\">".&Util::format_date($time).
 		        "</a> <a href=\"".$wiki->create_url({ action=>"SOURCE",page=>$page,generation=>($#list-$count) })."\">ソース</a>";
@@ -183,7 +183,7 @@ sub show_diff {
 				<input type="submit" value="このバージョンに戻す"/>
 				<input type="hidden" name="action" value="DIFF"/>
 				<input type="hidden" name="page" value="@{[Util::escapeHTML($page)]}"/>
-				<input type="hidden" name="rollback" value="@{[Util::escapeHTML($from)]}"/>
+				<input type="hidden" name="rollback" value="@{[Util::escapeHTML($to)]}"/>
 			</form>
 		|;
 	}
