@@ -149,7 +149,7 @@ sub show_history {
 	
 	my $login = $wiki->get_login_info();
 	if(defined($login) && $login->{'type'} == 0){
-		$buf .= "<input type=\"submit\" name=\"clear\" value=\"ÍúÎò¤òºï½ü\">\n";
+		$buf .= "<input type=\"submit\" name=\"clear\" value=\"ÍúÎò¤ò¤¹¤Ù¤Æºï½ü\">\n";
 	}
 	return $buf."</form>\n";
 }
