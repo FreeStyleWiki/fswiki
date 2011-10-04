@@ -275,7 +275,7 @@ sub page_list {
 	        "  <br>\n".
 	        "  <input type=\"hidden\" name=\"action\" value=\"ADMINPAGE\">\n".
 	        "  <h3>ページの凍結</h3>\n".
-	        "  <p>チェックしたページを凍結します。凍結したページはログイン時のみ編集となります。</p>\n".
+	        "  <p>チェックしたページを凍結します。凍結したページはログイン時のみ編集可能となります。</p>\n".
 	        "  <input type=\"submit\" name=\"freeze\" value=\" 凍 結 \">\n".
 	        "  <input type=\"submit\" name=\"unfreeze\" value=\"凍結解除\">\n".
 	        "  <h3>ページの削除</h3>\n".
