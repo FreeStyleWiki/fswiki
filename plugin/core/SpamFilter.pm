@@ -21,6 +21,12 @@ sub hook {
 	my $wiki = shift;
 	my $cgi  = $wiki->get_CGI();
 	
+	# 管理者でログインしている場合はスパムフィルタは無効
+	my $login = $wiki->get_login_info();
+	if(defined($login) && $login->{'type'} == 0){
+		return;
+	}
+	
 	my $content = $cgi->param("content");
 	return if($content eq '');
 	
