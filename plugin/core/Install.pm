@@ -69,6 +69,7 @@ sub install {
 	
 	$wiki->add_block_plugin("pre" ,"plugin::core::Pre" ,"HTML");
 	$wiki->add_block_plugin("bq" ,"plugin::core::Blockquote" ,"HTML");
+	$wiki->add_inline_plugin("raw" ,"plugin::core::Raw" ,"HTML");
 }
 
 sub accept_edit {
