@@ -95,6 +95,8 @@ eval {
 		$wiki->config('tmpl_dir')."/site/".$config->{site_tmpl_theme}."/".$config->{site_tmpl_theme}.".tmpl");
 	$wiki->config('site_handyphone_tmpl',
 		$wiki->config('tmpl_dir')."/site/".$config->{site_tmpl_theme}."/".$config->{site_tmpl_theme}."_handyphone.tmpl");
+	$wiki->config('site_smartphone_tmpl',
+		$wiki->config('tmpl_dir')."/site/".$config->{site_tmpl_theme}."/".$config->{site_tmpl_theme}."_smartphone.tmpl");
 
 	#==============================================================================
 	# タイムアウトしているセッションを破棄
@@ -135,10 +137,13 @@ eval {
 	#==============================================================================
 	my $output        = "";
 	my $is_handyphone = &Util::handyphone();
+	my $is_smartphone = &Util::smartphone();
 	my $template_name = "";
 
 	if ($is_handyphone) {
 		$template_name = 'site_handyphone_tmpl';
+	} elsif ($is_smartphone) {
+		$template_name = 'site_smartphone_tmpl';
 	} else {
 		$template_name = 'site_tmpl';
 	}
