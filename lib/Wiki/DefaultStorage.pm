@@ -206,7 +206,7 @@ sub _create_page_list_file {
 	}
 	if($flag eq "remove"){
 		my $names = Util::load_config_text(undef, $file);
-		$names =~ s/(^|\n)\Q$page\E\n/\n/;
+		$names =~ s/(^|\n)\Q$page\E\n/$1/;
 		Util::save_config_text(undef, $file, $names);
 	} elsif($flag eq 'update'){
 		# ページの更新時は何もしない
