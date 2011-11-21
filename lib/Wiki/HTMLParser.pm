@@ -278,24 +278,30 @@ sub l_table {
 	$self->end_verbatim;
 	$self->end_quote;
 	
+	my $tag = "td";
+	
 	if($self->{table}==0){
 		$self->{table}=1;
 		$self->{html} .= "<table>\n";
-		$self->{html} .= "<tr>\n";
-		foreach(@$row){
-			my $html = join("",@$_);
-			$self->{html} .= "<th>".$html."</th>\n";
-		}
-		$self->{html} .= "</tr>\n";
+		$tag = "th";
 	} else {
 		$self->{table}=2;
-		$self->{html} .= "<tr>\n";
-		foreach(@$row){
-			my $html = join("",@$_);
-			$self->{html} .= "<td>".$html."</td>\n";
-		}
-		$self->{html} .= "</tr>\n";
 	}
+	
+	my @columns = ();
+	foreach(@$row){
+		my $html = join("",@$_);
+		if($html eq '&lt;&lt;'){
+			@columns[$#columns]->{colspan}++;
+		} else {
+			push(@columns, {colspan => 1, html => $html});
+		}
+	}
+	$self->{html} .= "<tr>\n";
+	foreach(@columns){
+		$self->{html} .= "<$tag colspan=\"".$_->{colspan}."\">".$_->{html}."</$tag>\n";
+	}
+	$self->{html} .= "</tr>\n";
 }
 
 sub end_table {
