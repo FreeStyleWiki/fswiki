@@ -291,7 +291,7 @@ sub l_table {
 	my @columns = ();
 	foreach(@$row){
 		my $html = join("",@$_);
-		if($html eq '&lt;&lt;'){
+		if($#columns != -1 && $html eq '&lt;&lt;'){
 			@columns[$#columns]->{colspan}++;
 		} else {
 			push(@columns, {colspan => 1, html => $html});
