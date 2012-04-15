@@ -111,6 +111,7 @@ sub show_history {
 		open(DATA,$wiki->config('log_dir')."/useredit.log") or die $!;
 		while(<DATA>){
 			my($date, $time, $unixtime, $action, $subject, $id) = split(" ",$_);
+			$subject = Util::url_decode($subject);
 			if($subject eq $page){
 				if($id eq ''){
 					$editlog->{substr($unixtime, 0, length($unixtime) - 4)} = 'anonymous';
