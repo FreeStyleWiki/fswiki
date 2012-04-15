@@ -167,14 +167,45 @@ sub show_diff {
 	$wiki->set_title("$pageの変更点");
 	my ($diff, $rollback) = $self->get_diff_html($wiki,$page, $from, $to);
 	
-	$diff =~ s/\n/<br>/g;
-	
+	my $theme_uri = $wiki->config('theme_uri');
 	my $buf = qq|
-		<ul>
-		  <li>追加された部分は<ins class="diff">このように</ins>表示されます。</li>
-		  <li>削除された部分は<del class="diff">このように</del>表示されます。</li>
-		</ul>
-		<div class="diff">$diff</div>
+<script type="text/javascript" src="${theme_uri}/resources/jsdifflib/difflib.js"></script>
+<script type="text/javascript" src="${theme_uri}/resources/jsdifflib/diffview.js"></script>
+<link href="${theme_uri}/resources/jsdifflib/diffview.css" type="text/css" rel="stylesheet" />
+<script type="text/javascript">
+function diffUsingJS() {
+    // get the baseText and newText values from the two textboxes, and split them into lines
+    var base   = difflib.stringAsLines(document.getElementById("baseText").value);
+    var newtxt = difflib.stringAsLines(document.getElementById("newText").value);
+
+    // create a SequenceMatcher instance that diffs the two sets of lines
+    var sm = new difflib.SequenceMatcher(base, newtxt);
+
+    // get the opcodes from the SequenceMatcher instance
+    // opcodes is a list of 3-tuples describing what changes should be made to the base text
+    // in order to yield the new text
+    var opcodes = sm.get_opcodes();
+    var diffoutputdiv = document.getElementById("diffoutputdiv")
+    while (diffoutputdiv.firstChild) diffoutputdiv.removeChild(diffoutputdiv.firstChild);
+
+    // build the diff view and add it to the current DOM
+    diffoutputdiv.appendChild(diffview.buildView({
+        baseTextLines: base,
+        newTextLines: newtxt,
+        opcodes: opcodes,
+        // set the display titles for each resource
+        baseTextName: "Base Text",
+        newTextName: "New Text",
+        contextSize: null,
+        viewType: 1 // 1 or 0
+    }));
+}
+</script>
+$diff
+<div id="diffoutputdiv"/>
+<script type="text/javascript">
+  diffUsingJS();
+</script>
 	|;
 	
 	if($wiki->can_modify_page($page) && $rollback && $wiki->get_CGI->param('diff') eq ''){
@@ -245,11 +276,6 @@ sub get_diff_html {
 	} else {
 		$source1 = $wiki->get_page($page);
 	}
-	if($wiki->config('diff_max') ne '' && $wiki->config('diff_max') > 0){
-		if(length($source1) > $wiki->config('diff_max')){
-			return ('ページサイズが大きいため差分を表示できません。', 0);
-		}
-	}
 	
 	my $source2 = '';
 	if($to ne ''){
@@ -257,101 +283,13 @@ sub get_diff_html {
 	} else {
 		$source2 = $wiki->get_page($page);
 	}
-	if($wiki->config('diff_max') ne '' && $wiki->config('diff_max') > 0){
-		if(length($source2) > $wiki->config('diff_max')){
-			return ('ページサイズが大きいため差分を表示できません。', 0);
-		}
-	}
-	
 	my $format  = $wiki->get_edit_format();
 	
 	$source1 = $wiki->convert_from_fswiki($source1, $format);
 	$source2 = $wiki->convert_from_fswiki($source2, $format);
 	
-	return (&_get_diff_html($source1, $source2), $source2 ne "");
-}
-
-#==============================================================================
-# 差分HTMLを生成する関数
-#==============================================================================
-sub _get_diff_html {
-	my $source1 = shift;
-	my $source2 = shift;
-	
-	my @lines1 = split(/\n/,$source1);
-	my @lines2 = split(/\n/,$source2);
-	my $linesrefA = \@lines2;
-	my $linesrefB = \@lines1;
-	
-	my $diff_text = "";
-	my $del_buffer = "";
-	
-	traverse_sequences($linesrefA, $linesrefB, {
-		MATCH => sub {
-			my ($a, $b) = @_;
-			if($del_buffer ne ''){
-				$diff_text .= "<del class=\"diff\">".Util::escapeHTML($del_buffer)."</del>\n";
-				$del_buffer = '';
-			}
-			$diff_text .= Util::escapeHTML($linesrefA->[$a])."\n";
-		},
-		DISCARD_A => sub {
-			my ($a, $b) = @_;
-			$del_buffer .= $linesrefA->[$a]."\n";
-		},
-		DISCARD_B => sub {
-			my ($a, $b) = @_;
-			if($del_buffer eq ''){
-				$diff_text .= "<ins class=\"diff\">".Util::escapeHTML($linesrefB->[$b])."</ins>\n";
-				
-			} else {
-				my @msg1 = _str_jfold($linesrefB->[$b]."\n", 1);
-				my @msg2 = _str_jfold($del_buffer, 1);
-				my $msgrefA = \@msg2;
-				my $msgrefB = \@msg1;
-				
-				traverse_sequences($msgrefA, $msgrefB, {
-					MATCH => sub {
-						my ($a, $b) = @_;
-						$diff_text .= Util::escapeHTML($msgrefA->[$a]);
-					},
-					DISCARD_A => sub {
-						my ($a, $b) = @_;
-						$diff_text .= "<del class=\"diff\">".Util::escapeHTML($msgrefA->[$a])."</del><wbr>";
-					},
-					DISCARD_B => sub {
-						my ($a, $b) = @_;
-						$diff_text .= "<ins class=\"diff\">".Util::escapeHTML($msgrefB->[$b])."</ins><wbr>";
-					}
-				});
-				
-				$del_buffer = '';
-			}
-		}
-	});
-		
-	if($del_buffer ne ''){
-		$diff_text .= "<del class=\"diff\">".Util::escapeHTML($del_buffer)."</del>\n";
-		$del_buffer = '';
-	}
-	
-	return $diff_text;
-}
-
-#==============================================================================
-# 文字列を指定文字数を分割
-#==============================================================================
-sub _str_jfold {
-  my $str    = shift;       #指定文字列
-  my $byte   = shift;       #指定バイト
-  my $j      = new Jcode($str);
-  my @result = ();
-
-  foreach my $buff ( $j->jfold($byte) ){
-    push(@result, $buff);
-  }
-
-  return(@result);
+	return '<input id="newText" type="hidden" value="'.Util::escapeHTML($source1).'">'.
+	       '<input id="baseText" type="hidden" value="'.Util::escapeHTML($source2).'">';
 }
 
 #==============================================================================
