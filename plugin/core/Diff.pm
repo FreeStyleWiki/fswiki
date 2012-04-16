@@ -174,7 +174,7 @@ sub show_diff {
 <script type="text/javascript" src="${theme_uri}/resources/jsdifflib/diffview.js"></script>
 <link href="${theme_uri}/resources/jsdifflib/diffview.css" type="text/css" rel="stylesheet" />
 <script type="text/javascript">
-function diffUsingJS() {
+function diffUsingJS(type) {
     // get the baseText and newText values from the two textboxes, and split them into lines
     var base   = difflib.stringAsLines(document.getElementById("baseText").value);
     var newtxt = difflib.stringAsLines(document.getElementById("newText").value);
@@ -198,14 +198,15 @@ function diffUsingJS() {
         baseTextName: "Base Text",
         newTextName: "New Text",
         contextSize: null,
-        viewType: 1 // 1 or 0
+        viewType: type // 1 or 0
     }));
 }
 </script>
 $diff
+<input type="checkbox" id="viewtype" onclick="diffUsingJS(this.checked ? 0 : 1)"><label for="viewtype">サイドバイサイドで表示</label>
 <div id="diffoutputdiv"/>
 <script type="text/javascript">
-  diffUsingJS();
+  diffUsingJS(1);
 </script>
 	|;
 	
