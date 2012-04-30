@@ -53,7 +53,7 @@ sub do_action {
 			}
 		}
 		if($wiki->page_exists($pagename) && $cgi->param("lastmodified") != $time){
-			$buf .= "<p><span class=\"error\">ページは既に別のユーザによって更新されています。</span></p>";
+			$buf .= "<p><span class=\"error\">ページは既に別のユーザによって更新されています。最新版との差分を確認して再度編集を行ってください。</span></p>";
 			
 			my $mode = $wiki->get_edit_format();
 			my $orig_source = undef;
@@ -66,19 +66,8 @@ sub do_action {
 			$your_source =~ s/\r\n/\n/g;
 			$your_source =~ s/\r/\n/g;
 			
-			my $diff = plugin::core::Diff::_get_diff_html($orig_source, $your_source);
-			$diff =~ s/\n/<br>/g;
-			
-			$buf .= qq|
-				<ul>
-				  <li>追加された部分は<ins class="diff">このように</ins>表示されます。</li>
-				  <li>削除された部分は<del class="diff">このように</del>表示されます。</li>
-				</ul>
-				<p>
-				  最新版との差分を確認して再度編集を行ってください：
-				</p>
-				<div class="diff">$diff</div>
-			|;
+			my $diff = plugin::core::Diff::_get_diff_html($wiki, $orig_source, $your_source);
+			$buf .= $diff."<br>";
 			
 			$content = $orig_source;
 			
@@ -133,19 +122,11 @@ sub do_action {
 		$your_source =~ s/\r\n/\n/g;
 		$your_source =~ s/\r/\n/g;
 		
-		$buf .= qq|
-			<ul>
-			  <li>追加された部分は<ins class="diff">このように</ins>表示されます。</li>
-			  <li>削除された部分は<del class="diff">このように</del>表示されます。</li>
-			</ul>
-		|;
-			
 		if($orig_source eq $your_source){
 			$buf .= '<p class="error">差分はありません。</p>';
 		} else {
-			my $diff = plugin::core::Diff::_get_diff_html($your_source, $orig_source);
-			$diff =~ s/\n/<br>/g;
-			$buf .= qq|<div class="diff">$diff</div>|;
+			my $diff = plugin::core::Diff::_get_diff_html($wiki, $your_source, $orig_source);
+			$buf .= $diff."<br>";
 		}
 		
 	#--------------------------------------------------------------------------

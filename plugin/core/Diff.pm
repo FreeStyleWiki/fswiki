@@ -166,8 +166,33 @@ sub show_diff {
 	my $to   = shift;
 	
 	$wiki->set_title("$pageの変更点");
-	my ($diff, $rollback) = $self->get_diff_html($wiki,$page, $from, $to);
+	my ($source1, $source2) = $self->get_diff_sources($wiki, $page, $from, $to);
 	
+	my $theme_uri = $wiki->config('theme_uri');
+	my $buf = _get_diff_html($wiki, $source1, $source2);
+
+	if($wiki->can_modify_page($page) && $wiki->get_CGI->param('diff') eq ''){
+		$buf .= qq|
+			<form action="@{[$wiki->create_url()]}" method="POST">
+				<input type="submit" value="このバージョンに戻す"/>
+				<input type="hidden" name="action" value="DIFF"/>
+				<input type="hidden" name="page" value="@{[Util::escapeHTML($page)]}"/>
+				<input type="hidden" name="rollback" value="@{[Util::escapeHTML($to)]}"/>
+			</form>
+		|;
+	}
+	
+	return $buf;
+}
+
+#==============================================================================
+# jsdifflibを使って差分の表示を行うHTMLを取得
+#==============================================================================
+sub _get_diff_html {
+	my $wiki = shift;
+	my $source1 = shift;
+	my $source2 = shift;
+
 	my $theme_uri = $wiki->config('theme_uri');
 	my $buf = qq|
 <script type="text/javascript" src="${theme_uri}/resources/jsdifflib/difflib.js"></script>
@@ -202,24 +227,14 @@ function diffUsingJS(type) {
     }));
 }
 </script>
-$diff
+<input id="newText"  type="hidden" value="@{[Util::escapeHTML($source1)]}">
+<input id="baseText" type="hidden" value="@{[Util::escapeHTML($source2)]}">
 <input type="checkbox" id="viewtype" onclick="diffUsingJS(this.checked ? 0 : 1)"><label for="viewtype">サイドバイサイドで表示</label>
-<div id="diffoutputdiv"/>
+<div id="diffoutputdiv"></div>
 <script type="text/javascript">
   diffUsingJS(1);
 </script>
 	|;
-	
-	if($wiki->can_modify_page($page) && $rollback && $wiki->get_CGI->param('diff') eq ''){
-		$buf .= qq|
-			<form action="@{[$wiki->create_url()]}" method="POST">
-				<input type="submit" value="このバージョンに戻す"/>
-				<input type="hidden" name="action" value="DIFF"/>
-				<input type="hidden" name="page" value="@{[Util::escapeHTML($page)]}"/>
-				<input type="hidden" name="rollback" value="@{[Util::escapeHTML($to)]}"/>
-			</form>
-		|;
-	}
 	
 	return $buf;
 }
@@ -263,9 +278,9 @@ sub get_diff_text {
 }
 
 #==============================================================================
-# 差分文字列を表示用HTMLとして取得
+# 差分表示用のソースを取得
 #==============================================================================
-sub get_diff_html {
+sub get_diff_sources {
 	my $self = shift;
 	my $wiki = shift;
 	my $page = shift;
@@ -290,8 +305,7 @@ sub get_diff_html {
 	$source1 = $wiki->convert_from_fswiki($source1, $format);
 	$source2 = $wiki->convert_from_fswiki($source2, $format);
 	
-	return '<input id="newText" type="hidden" value="'.Util::escapeHTML($source1).'">'.
-	       '<input id="baseText" type="hidden" value="'.Util::escapeHTML($source2).'">';
+	return ($source1, $source2);
 }
 
 #==============================================================================
