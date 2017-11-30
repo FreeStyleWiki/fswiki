@@ -89,7 +89,7 @@ sub parse {
 		}
 		
 		# パラグラフプラグイン
-		if($line =~ /^{{(.+}})$/){
+		if($line =~ /^\{\{(.+\}\})$/){
 			if(!$self->{block}){
 				my $plugin = $self->{wiki}->parse_inline_plugin($1);
 				my $info   = $self->{wiki}->get_plugin_info($plugin->{command});
@@ -101,7 +101,7 @@ sub parse {
 				}
 				next;
 			}
-		} elsif($line =~ /^{{(.+)$/){
+		} elsif($line =~ /^\{\{(.+)$/){
 			if ($self->{block}) {
 				my $plugin = $self->{wiki}->parse_inline_plugin($1);
 				my $info   = $self->{wiki}->get_plugin_info($plugin->{command});
@@ -282,7 +282,7 @@ sub parse_line {
 	while ($source ne q{}) {
 
 		# どのインライン Wiki 書式の先頭にも match しない場合
-		if (!($source =~ /^(.*?)((?:{{|\[\[?|https?:|mailto:|f(?:tp:|ile:)|'''?|==|__|<<).*)$/)) {
+		if (!($source =~ /^(.*?)((?:\{\{|\[\[?|https?:|mailto:|f(?:tp:|ile:)|'''?|==|__|<<).*)$/)) {
 			# キーワード検索・置換処理のみ実施して終了する
 			push @array, $self->_parse_line_keyword($pre . $source);
 			return @array;
@@ -293,7 +293,7 @@ sub parse_line {
 		@parsed = ();
 
 		# プラグイン
-		if ($source =~ /^{{/) {
+		if ($source =~ /^\{\{/) {
 			$source = $';
 			my $plugin = $self->{wiki}->parse_inline_plugin($source);
 			unless($plugin){

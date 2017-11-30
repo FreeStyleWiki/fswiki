@@ -56,7 +56,7 @@ sub do_action {
 			# ¿·Ãå½ç¤Î¾ì¹ç
 			if($option eq "reverse"){
 				$content = $content.$_."\n";
-				if(/^{{comment\s*.*}}$/ && $flag==0){
+				if(/^\{\{comment\s*.*\}\}$/ && $flag==0){
 					if($form_count==$count){
 						$content = $content."*$message - $name (".Util::format_date(time()).")\n";
 						$flag = 1;
@@ -70,7 +70,7 @@ sub do_action {
 				
 			# Åê¹Æ½ç¤Î¾ì¹ç
 			} else {
-				if(/^{{comment\s*.*}}$/ && $flag==0){
+				if(/^\{\{comment\s*.*\}\}$/ && $flag==0){
 					if($form_count==$count){
 						$content = $content."*$message - $name (".Util::format_date(time()).")\n";
 						$flag = 1;
@@ -105,7 +105,7 @@ sub check_comment {
 	my $page = shift;
 	my @lines = split(/\n/,$wiki->get_page($page));
 	foreach(@lines){
-		if(/^{{comment\s*.*}}$/){
+		if(/^\{\{comment\s*.*\}\}$/){
 			return 1;
 		}
 	}

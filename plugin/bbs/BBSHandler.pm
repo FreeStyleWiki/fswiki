@@ -61,7 +61,7 @@ sub do_action {
 	
 	foreach(@lines){
 		$content = $content.$_."\n";
-		if(/^{{bbs\s*.*}}$/ && $flag==0){
+		if(/^\{\{bbs\s*.*\}\}$/ && $flag==0){
 			if($form_count==$count){
 				$content .= "!!$subject - $name (".&Util::format_date(time()).")\n".
 				            "$message\n";
