@@ -25,15 +25,15 @@ sub convert_to_fswiki {
 	
 	$self->{block_level} = 0;
 	foreach my $line (@lines){
-		if($line =~ /^{{.+}}$/){
+		if($line =~ /^\{\{.+\}\}$/){
 			$buf .= $line."\n";
 			next;
-		} elsif($line =~ /^{{.+$/){
+		} elsif($line =~ /^\{\{.+$/){
 			$self->{block_level}++;
 			$buf .= $line."\n";
 			next;
 		} elsif($self->{block_level} > 0){
-			if($line eq "}}"){
+			if($line eq "\}\}"){
 				$self->{block_level}--;
 			}
 			$buf .= $line."\n";
@@ -57,10 +57,10 @@ sub convert_from_fswiki {
 	
 	$self->{block_level} = 0;
 	foreach my $line (@lines){
-		if($line =~ /^{{.+}}$/){
+		if($line =~ /^\{\{.+\}\}$/){
 			$buf .= $line."\n";
 			next;
-		} elsif($line =~ /^{{.+$/){
+		} elsif($line =~ /^\{\{.+$/){
 			$self->{block_level}++;
 			$buf .= $line."\n";
 			next;

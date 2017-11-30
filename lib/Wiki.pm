@@ -729,7 +729,7 @@ sub parse_inline_plugin {
 	my $text = shift;
 	my ($cmd, @args_tmp) = split(/ /,$text);
 	my $args_txt = &Util::trim(join(" ",@args_tmp));
-	if($cmd =~ s/}}(.*?)$//){
+	if($cmd =~ s/\}\}(.*?)$//){
 		return { command=>$cmd, args=>[], post=>"$1 $args_txt"};
 	}
 	

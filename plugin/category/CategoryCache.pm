@@ -102,7 +102,7 @@ sub get_page_category {
 	my @category;
 	foreach my $line (split(/\n/,$source)){
 		if(index($line," ")!=0 && index($line,"\t")!=0 && index($line,"//")!=0){
-			while($line =~ /{{(category\s+(.+?)\s*}})/g){
+			while($line =~ /\{\{(category\s+(.+?)\s*\}\})/g){
 				my $inline = $wiki->parse_inline_plugin($1);
 				if(@{$inline->{args}} > 1 and $inline->{args}->[-1] eq 'nolink'){
 					pop @{$inline->{args}};
