@@ -1,5 +1,5 @@
 # PDFJ::TTF - TrueType font support
-# 2002 Sey <nakajima@netstock.co.jp>
+# 2002-4 Sey <nakajima@netstock.co.jp>
 
 package PDFJ::TTF;
 use PDFJ::Unicode;
@@ -42,18 +42,19 @@ sub pdf_info_common {
 	\%info;
 }
 
-sub pdf_info_japan {
+sub pdf_info_cid {
 	my($self, $encoding) = @_;
 	my $info = $self->pdf_info_common;
 	$info->{Encoding} = $encoding;
 	$info->{Flags} |= (1 << 2); # Symbolic
-	
+if(0) {
 	my $upm = $self->{table}{head}{unitsPerEm};
 	my @width = @{$self->{table}{hmtx}{hMetrics}{advanceWidth}};
 	my $glphs = $self->{table}{maxp}{numGlyphs};
 	while( $glphs > @width ) {
 		push @width, $width[$#width];
 	}
+}
 	$info;
 }
 
@@ -102,11 +103,15 @@ sub toglyphunit {
 #-------------------------------------------------
 sub subset {
 	my($self, $encoding, @unicodes) = @_; 
-		# $encoding: H V Hp Vp
 		# @unicodes must be uniqed
 	my $result;
 	my @gidxs = (0, $self->unicode2gidx(@unicodes)); 
 		# 0 for missing glyph required
+	if( $encoding =~ /-V$/ ) {
+		my $vgidsubst = $self->vgidsubst;
+		grep {$_ = $vgidsubst->{$_} if $vgidsubst->{$_}} @gidxs
+			if $vgidsubst;
+	}
 	my %gidxs;
 	@gidxs{@gidxs} = 1 x @gidxs;
 	$self->{subset_gidxs} = \%gidxs;
@@ -166,7 +171,11 @@ sub subset {
 	my @cids = (0, map {PDFJ::Unicode::unicodetocid($_, $encoding)} @unicodes);
 		# CID 0 -> GID 0 OK?
 	my @c2g;
-	@c2g[@cids] = @gidxs;
+	#@c2g[@cids] = @gidxs;
+	for( my $j = 0; $j < @cids; $j++ ) {
+		next if $cids[$j] eq '-';
+		$c2g[$cids[$j]] = $gidxs[$j];
+	}
 	my $cidtogidmap = pack "n*", map {$_ || 0} @c2g;
 if(0) {
 	# make CIDSet
@@ -177,6 +186,34 @@ if(0) {
 	($result, $cidtogidmap, $cidset);
 }
 	($result, $cidtogidmap);
+}
+
+# get vertical mode gid substitution table
+sub vgidsubst {
+	my($self) = @_;
+	return unless exists $self->{tabledir}{mort};
+	my %result;
+	$self->read_mort;
+	my $mort = $self->{table}{mort};
+	for my $chain(@{$mort->{chain}}) {
+		for my $subtable(@{$chain->{subtable}}) {
+			if( $subtable->{coverage} == 0x8004 ) { # vetical and non-contextual
+				my $lutable = $subtable->{lookuptable};
+				if( $lutable->{format} == 6 ) {
+					for my $entry(@{$lutable->{entries}}) {
+						$result{$entry->{glyph}} = $entry->{value};
+					}
+				} elsif( $lutable->{format} == 8 ) {
+					my $first = $lutable->{firstGlyph};
+					my $count = $lutable->{glyphCount};
+					for( my $j = 0; $j < $count; $j++ ) {
+						$result{$first + $j} = $lutable->{valueArray}[$j];
+					}
+				}
+			}
+		}
+	}
+	\%result;
 }
 
 sub subset_head {
@@ -258,7 +295,8 @@ sub Xsubset_hmtx {
 	push @lsb, @{$self->{table}{hmtx}{leftSideBearing}} 
 		if $self->{table}{hmtx}{leftSideBearing};
 	PDFJ::TTutil::_short2unsigned(\@lsb);
-	for my $gidx(@{$self->{subset_gidxs}}) {
+	#for my $gidx(@{$self->{subset_gidxs}}) {
+	for my $gidx(sort {$a <=> $b} keys %{$self->{subset_gidxs}}) {
 		$result .= pack "nn", $width[$gidx], $lsb[$gidx];
 	}
 	$result;
@@ -286,8 +324,9 @@ sub read_tabledirs {
 		rangeShift:n
 		));
 	my $type = $self->{subtable}{scaler_type};
-	croak "unknown type: $type"
-		unless $type == 0x10000 || $type == 0x74727565; # 1.0 or 'true';
+	croak "unknown type: $type(0x".sprintf("%x",$type).")"
+		unless $type == 0x10000 || $type == 0x74727565 || # 1.0 or 'true';
+			$type == 0x4f54544f; # 'OTTO' for OpenType font
 	my $tables = $self->{subtable}{numTables};
 	my $rby16;
 	for( my $r = 1; $r <= $tables; $r *= 2 ) {
@@ -338,6 +377,7 @@ sub read_table {
 	}
 	for my $tag(@tags) {
 		my $mname = "read_$tag";
+		$mname =~ s/\s+$//;
 		$mname =~ s#/#_#g;
 		my $func = $self->can($mname);
 		$self->$func() if $func;
@@ -571,6 +611,123 @@ sub read_cmap {
 	}
 }
 
+# get only Non-contextual Glyph Substitution Subtable
+sub read_mort {
+	my($self) = @_;
+	my $tag = 'mort';
+	return if exists $self->{table}{$tag} && !$self->reload;
+	$self->seek_table($tag);
+	$self->_read_hash($self->{table}{$tag}, qw(
+		version:N
+		nChains:N
+		));
+	my $count = $self->{table}{$tag}{nChains};
+	my $chainoffset = $self->{tabledir}{$tag}{offset} + 8;
+	while( $count-- ) {
+		if( $chainoffset % 4 ) {
+			$chainoffset = (int($chainoffset / 4) + 1) * 4;
+		}
+		$self->seek($chainoffset);
+		my %chain;
+		$self->_read_hash(\%chain, qw(
+			defaultFlags:N
+			chainLength:N
+			nFeatureEntries:n
+			nSubtables:n
+			));
+		for( my $j = 0; $j < $chain{nFeatureEntries}; $j++ ) {
+			$self->_read_hash($chain{featuretable}[$j], qw(
+				featureType:n
+				featureSetting:n
+				enableFlags:N
+				disableFlags:N
+				));
+		}
+		for( my $j = 0; $j < $chain{nSubtables}; $j++ ) {
+			$self->_read_hash($chain{subtable}[$j], qw(
+				length:n
+				coverage:n
+				subFeatureFlags:N
+				));
+			my $type = $chain{subtable}[$j]{coverage} & 7;
+			if( $type == 4 ) { # Non-contextual glyph substitution
+				$chain{subtable}[$j]{lookuptable} = 
+					$self->_read_LookupTable('n');
+			}
+		}
+		push @{$self->{table}{$tag}{chain}}, \%chain;
+		$chainoffset += $chain{chainLength} + 8;
+	}
+}
+
+sub read_GSUB {
+	my($self) = @_;
+	my $tag = 'GSUB';
+	return if exists $self->{table}{$tag} && !$self->reload;
+	$self->seek_table($tag);
+	$self->_read_hash($self->{table}{$tag}, qw(
+		version:N
+		ScriptList:n
+		FeatureList:n
+		LookupList:n
+		));
+	$self->seek($self->{table}{$tag}{offset} + 
+		$self->{table}{$tag}{ScriptList});
+	
+}
+
+sub _read_LookupTable {
+	my($self, $valuetype, $lu) = @_;
+	$lu ||= {};
+	$self->_read_hash($lu, qw(format:n));
+	if( $lu->{format} == 0 ) { # simple array format
+	
+	} elsif( $lu->{format} == 2 ) { # segment single format
+		$self->_read_BinSrchHeader($lu);
+		for( my $j = 0; $j < $lu->{nUnits}; $j++ ) {
+			push @{$lu->{segments}}, 
+				$self->_read_hash({}, 
+				"lastGlyph:n", "firstGlyph:n", "value:$valuetype");
+		}
+	} elsif( $lu->{format} == 4 ) { # segment array format
+		$self->_read_BinSrchHeader($lu);
+		my $vlen = $self->_typelen($valuetype);
+		my $vcount = int(($lu->{unitSize} - 4) / $vlen);
+		for( my $j = 0; $j < $lu->{nUnits}; $j++ ) {
+			push @{$lu->{segments}}, 
+				$self->_read_hash({}, 
+				"lastGlyph:n", "firstGlyph:n", "value:$valuetype:$vcount");
+		}
+	} elsif( $lu->{format} == 6 ) { # single table format
+		$self->_read_BinSrchHeader($lu);
+		for( my $j = 0; $j < $lu->{nUnits}; $j++ ) {
+			push @{$lu->{entries}}, 
+				$self->_read_hash({}, "glyph:n", "value:$valuetype");
+		}
+	} elsif( $lu->{format} == 8 ) { # trimmed array format
+		$self->_read_hash($lu, qw(
+			firstGlyph:n
+			glyphCount:n
+			));
+		my $count = $lu->{glyphCount};
+		$self->_read_hash($lu, "valueArray:$valuetype:$count");
+	}
+	$lu;
+}
+
+sub _read_BinSrchHeader {
+	my($self, $bsh) = @_;
+	$bsh ||= {};
+	$self->_read_hash($bsh, qw(
+		unitSize:n
+		nUnits:n
+		searchRange:n
+		entrySelector:n
+		rangeShift:n
+		));
+	$bsh;
+}
+
 sub find_cmap {
 	my($self, $pid, $psid, $format) = @_;
 	for my $st(@{$self->{table}{cmap}{subtable}}) {
@@ -690,8 +847,14 @@ sub dump {
 		}
 	}
 	for my $tag(keys %{$self->{table}}) {
-		print $handle "\ntable($tag)";
-		PDFJ::TTutil::_dump($handle, "", $self->{table}{$tag});
+		my $fname = "dump_$tag";
+		$fname =~ s/\s+$//;
+		if( $self->can($fname) ) {
+			$self->$fname($handle);
+		} else {
+			print $handle "\ntable($tag)";
+			PDFJ::TTutil::_dump($handle, "", $self->{table}{$tag});
+		}
 	}
 	print $handle "\n";
 }
@@ -805,6 +968,12 @@ sub _seek_read {
 	$self->_read($length);
 }
 
+
+sub _typelen {
+	my($self, $type) = @_;
+	{C => 1, n => 2, m => 2, N => 4, M => 4}->{$type};
+}
+
 sub _read_hash {
 	$_[1] = {} unless defined $_[1];
 	my($self, $hashref, @specs) = @_;
@@ -818,20 +987,19 @@ sub _read_hash {
 	for my $spec(@specs) {
 		my($key, $type, $count) = split /:/, $spec;
 		$count ||= "";
+		my $typelen = $self->_typelen($type);
 		push @keys, $key;
 		$count{$key} = $count;
 		if( $type eq 'C' ) {
 			$template .= "C$count";
-			$length += $count ? $count : 1;
 		} elsif( $type eq 'n' || $type eq 'm' ) {
 			$template .= "n$count";
-			$length += $count ? 2 * $count : 2;
 		} elsif( $type eq 'N' || $type eq 'M' ) {
 			$template .= "N$count";
-			$length += $count ? 4 * $count : 4;
 		} else {
 			croak "unknown type '$type'";
 		}
+		$length += $count ? $typelen * $count : $typelen;
 		push @shortsignedkeys, $key if $type eq 'm';
 		push @longsignedkeys, $key if $type eq 'M';
 		last if $maxlen && $length >= $maxlen;
@@ -853,6 +1021,7 @@ sub _read_hash {
 	for my $key(@longsignedkeys) {
 		$hashref->{$key} = PDFJ::TTutil::_long2signed($hashref->{$key});
 	}
+	$hashref;
 }
 
 sub _read_array {

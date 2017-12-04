@@ -6,24 +6,50 @@ use Exporter;
 use vars qw($VERSION @ISA @EXPORT);
 @ISA = qw(Exporter);
 
-$VERSION = 0.2;
+$VERSION = 0.4;
 
 @EXPORT = qw(
-	null bool number string textstring name array dictionary stream 
-	contents_stream
+	null bool number numbers string textstring datestring name array 
+	dictionary stream contents_stream
 );
 
 # functions to generate an object
 sub null   {PDFJ::Obj::null->new(@_)}
 sub bool   {PDFJ::Obj::bool->new(@_)}
 sub number {PDFJ::Obj::number->new(@_)}
+sub numbers {map {PDFJ::Obj::number->new($_)} @_}
 sub string {PDFJ::Obj::string->new(@_)}
 sub textstring {PDFJ::Obj::textstring->new(@_)}
+sub datestring {PDFJ::Obj::datestring->new(@_)}
 sub name   {PDFJ::Obj::name->new(@_)}
 sub array  {PDFJ::Obj::array->new(@_)}
 sub dictionary {PDFJ::Obj::dictionary->new(@_)}
 sub stream {PDFJ::Obj::stream->new(@_)}
 sub contents_stream {PDFJ::Obj::contents_stream->new(@_)}
+
+#---------------------------------------
+package PDFJ::ObjTable;
+use strict;
+
+sub new {
+	my($class) = @_;
+	bless {objlist => [undef]}, $class;
+}
+
+sub lastobjnum {
+	my $self = shift;
+	$#{$self->{objlist}};
+}
+
+sub get {
+	my($self, $idx) = @_;
+	$self->{objlist}->[$idx];
+}
+
+sub set {
+	my($self, $idx, $obj) = @_;
+	$self->{objlist}->[$idx] = $obj;
+}
 
 #---------------------------------------
 # virtual base class 
@@ -35,6 +61,14 @@ sub new {
 	my $self = bless \%args, $class;
 	$self->value2obj if $self->can('value2obj');
 	$self;
+}
+
+sub unused {
+	my($self, $unused) = @_;
+	if( defined $unused ) {
+		$self->{unused} = $unused;
+	}
+	$self->{unused};
 }
 
 sub indirect {
@@ -55,26 +89,37 @@ sub indirectnum {
 }
 
 sub output {
-	my $self = shift;
+	my($self, $rc4key, $filter) = @_;
 	my $inum = $self->indirectnum;
 	if( $inum ) {
 		"$inum R";
 	} else {
-		$self->{output} || $self->makeoutput;
+		$self->{output} || $self->makeoutput($rc4key, $filter);
 	}
 }
 
 sub print {
-	my($self, $handle) = @_;
+	my($self, $handle, $encryptkey, $filter) = @_;
 	my $inum = $self->indirectnum;
-	return unless $inum;
-	my $output = $self->{output} || $self->makeoutput;
-	print $handle "$inum obj\n$output\nendobj\n\n";
+	return 0 unless $inum;
+	my $rc4key;
+	if( $encryptkey ) {
+		require Digest::MD5;
+		my $md5obj = Digest::MD5->new;
+		$md5obj->add($encryptkey . substr(pack("V", $inum + 0), 0, 3) . 
+			"\x00\x00");
+		$rc4key = substr($md5obj->digest, 0, 10);
+	}
+	my $output = $self->{output} || $self->makeoutput($rc4key, $filter);
+#	print $handle "$inum obj\n$output\nendobj\n\n";
+	my $str = "$inum obj\n$output\nendobj\n\n";
+	print $handle $str;
+	return length($str);
 }
 
 sub _toobj {
 	my($self, $value) = @_;
-	return $value if UNIVERSAL::isa($value, 'PDFJ::Obj');
+	return $value if PDFJ::Util::objisa($value, 'PDFJ::Obj');
 	if( ref($value) eq 'ARRAY' ) {
 		$value = PDFJ::Obj::array->new($value);
 	} elsif( ref($value) eq 'HASH' ) {
@@ -117,7 +162,9 @@ use vars qw(@ISA);
 
 sub makeoutput {
 	my $self = shift;
-	$self->{output} = $self->{value} + 0;
+	my $num = $self->{value} + 0;
+	$num = sprintf("%.14f", $num) if int($num) != $num;
+	$self->{output} = $num;
 }
 
 sub add {
@@ -132,18 +179,25 @@ use vars qw(@ISA);
 @ISA = qw(PDFJ::Obj);
 
 sub makeoutput {
-	my $self = shift;
-	if( !defined $self->{outputtype} || 
+	my($self, $rc4key, $filter) = @_;
+	my $value = $self->{value};
+	if( $rc4key ) {
+		if( $self->{outputtype} eq 'hexliteral' ) {
+			$value = pack('H*', $value);
+		}
+		$value = PDFJ::Util::RC4($value, $rc4key);
+		$self->{outputtype} = 'hex';
+	} elsif( !defined $self->{outputtype} || 
 		$self->{outputtype} !~ /^(literal|hex|hexliteral)$/ ) {
 		$self->{outputtype} = 
-			$self->{value} =~ /[\x80-\xff]/ ? 'hex' : 'literal';
+			$value =~ /[^\x00-\x7f]/ ? 'hex' : 'literal';
 	}
 	if( $self->{outputtype} eq 'literal' ) {
-		$self->{output} = '(' . escape($self->{value}) . ')';
+		$self->{output} = '(' . escape($value) . ')';
 	} elsif( $self->{outputtype} eq 'hexliteral' ) {
-		$self->{output} = '<' . $self->{value} . '>';
+		$self->{output} = '<' . $value . '>';
 	} else {
-		$self->{output} = '<' . tohex($self->{value}) . '>';
+		$self->{output} = '<' . tohex($value) . '>';
 	}
 }
 
@@ -169,6 +223,27 @@ package PDFJ::Obj::textstring;
 use strict;
 use vars qw(@ISA);
 @ISA = qw(PDFJ::Obj::string);
+
+sub value2obj {
+	my $self = shift;
+	if( $self->{value} =~ /[^\x00-\x7f]/ ) {
+		$self->{value} = PDFJ::Util::tounicode($self->{value}, 1);
+	}
+}
+
+#---------------------------------------
+package PDFJ::Obj::datestring;
+use strict;
+use vars qw(@ISA);
+@ISA = qw(PDFJ::Obj::string);
+
+sub value2obj {
+	my $self = shift;
+	my @time = gmtime($self->{value} || time);
+	$time[4]++;
+	$time[5] += 1900;
+	$self->{value} = sprintf("D:%04d%02d%02d%02d%02d%02dZ", @time[5,4,3,2,1,0]);
+}
 
 #---------------------------------------
 package PDFJ::Obj::name;
@@ -199,8 +274,9 @@ sub value2obj {
 }
 
 sub makeoutput {
-	my $self = shift;
-	$self->{output} = '[' . join(' ', map {$_->output} @{$self->{value}}) . ']';
+	my($self, $rc4key, $filter) = @_;
+	$self->{output} = '[' . join(' ', map {$_->output($rc4key, $filter)} 
+		@{$self->{value}}) . ']';
 }
 
 sub get {
@@ -211,6 +287,11 @@ sub get {
 sub set {
 	my($self, $idx, $obj) = @_;
 	$self->{value}->[$idx] = $self->_toobj($obj);
+}
+
+sub insert {
+	my($self, $idx, $obj) = @_;
+	splice @{$self->{value}}, $idx, 0, $self->_toobj($obj);
 }
 
 sub push {
@@ -254,12 +335,18 @@ sub value2obj {
 	}
 }
 
-sub makeoutput {
+sub nocrypt {
 	my $self = shift;
+	$self->{nocrypt} = 1;
+}
+
+sub makeoutput {
+	my($self, $rc4key, $filter) = @_;
+	$rc4key = '' if $self->{nocrypt};
 	my $href = $self->{value};
 	$self->{output} = '<<' . 
-		join(' ', map {(PDFJ::Obj::name->new($_)->output,
-			$href->{$_}->output)} keys %$href) . '>>';
+		join(' ', map {(PDFJ::Obj::name->new($_)->output($rc4key, $filter),
+			$href->{$_}->output($rc4key, $filter))} keys %$href) . '>>';
 }
 
 sub exists {
@@ -277,6 +364,11 @@ sub set {
 	$self->{value}->{$key} = $self->_toobj($obj);
 }
 
+sub keys {
+	my($self) = @_;
+	keys %{$self->{value}};
+}
+
 #---------------------------------------
 package PDFJ::Obj::stream;
 use strict;
@@ -290,34 +382,54 @@ sub value2obj {
 }
 
 sub makeoutput {
-	my $self = shift;
+	my($self, $rc4key, $filter) = @_;
 	my $stream = ref($self->{stream}) eq 'ARRAY' ? 
 		join('', @{$self->{stream}}) : $self->{stream};
 	$self->{dictionary} = PDFJ::Obj::dictionary->new() 
 		unless $self->{dictionary};
 	$self->{dictionary}->set(
 		Length => PDFJ::Obj::number->new(length($stream)) );
-	$self->{output} = $self->{dictionary}->output . " stream\n" . 
-		$stream . "\nendstream";
+	$stream = PDFJ::Util::RC4($stream, $rc4key) if $rc4key;
+	$self->{output} = $self->{dictionary}->output($rc4key, $filter) . 
+		" stream\n" . $stream . "\nendstream";
+}
+
+sub dictionary {
+	my $self = shift;
+	$self->{dictionary};
 }
 
 sub append {
 	my($self, $data, $index) = @_;
-	$index += 0;
-	if( ref($self->{stream}) eq 'ARRAY' ) {
-		$self->{stream}->[$index] .= $data;
+	if( ref($data) eq 'ARRAY' ) {
+		for my $d(@$data) {
+			append($self, $d, $index);
+		}
 	} else {
-		$self->{stream} .= $data;
+		$index += 0;
+		$data = $data->output if PDFJ::Util::objisa($data, 'PDFJ::Obj');
+		if( ref($self->{stream}) eq 'ARRAY' ) {
+			$self->{stream}->[$index] .= $data;
+		} else {
+			$self->{stream} .= $data;
+		}
 	}
 }
 
 sub insert {
 	my($self, $data, $index) = @_;
-	$index += 0;
-	if( ref($self->{stream}) eq 'ARRAY' ) {
-		$self->{stream}->[$index] = $data . $self->{stream}->[$index];
+	if( ref($data) eq 'ARRAY' ) {
+		for my $d(@$data) {
+			insert($self, $d, $index);
+		}
 	} else {
-		$self->{stream} = $data . $self->{stream};
+		$index += 0;
+		$data = $data->output if PDFJ::Util::objisa($data, 'PDFJ::Obj');
+		if( ref($self->{stream}) eq 'ARRAY' ) {
+			$self->{stream}->[$index] = $data . $self->{stream}->[$index];
+		} else {
+			$self->{stream} = $data . $self->{stream};
+		}
 	}
 }
 
@@ -338,16 +450,21 @@ use vars qw(@ISA);
 @ISA = qw(PDFJ::Obj::stream);
 
 sub makeoutput {
-	my $self = shift;
+	my($self, $rc4key, $filter) = @_;
 	my $stream = ref($self->{stream}) eq 'ARRAY' ? 
 		join('', map { $_ ne '' ? " q $_ Q " : '' } @{$self->{stream}}) : 
 		$self->{stream};
+	if( $filter =~ /f/ ) { # 'a' filter makes no effect
+		($stream, $filter) = PDFJ::Util::makestream($filter, \$stream);
+	}
 	$self->{dictionary} = PDFJ::Obj::dictionary->new() 
 		unless $self->{dictionary};
 	$self->{dictionary}->set(
 		Length => PDFJ::Obj::number->new(length($stream)) );
-	$self->{output} = $self->{dictionary}->output . " stream\n" . 
-		$stream . "\nendstream";
+	$self->{dictionary}->set(Filter => $filter) if $filter;
+	$stream = PDFJ::Util::RC4($stream, $rc4key) if $rc4key;
+	$self->{output} = $self->{dictionary}->output($rc4key, $filter) . 
+		" stream\n" . $stream . "\nendstream";
 }
 
 1;

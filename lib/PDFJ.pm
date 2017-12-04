@@ -1,48 +1,129 @@
 # PDFJ.pm
 # PDF for Japanese
-# 2001-2 Sey <nakajima@netstock.co.jp>
+# 2001-2014 Sey <nakajima@netstock.co.jp>
 package PDFJ;
 use PDFJ::Object;
-use PDFJ::Unicode;
-use PDFJ::E2U;
 use Carp;
 use strict;
 use vars qw($VERSION @EXFUNC %Default);
 
-$VERSION = 0.7;
+$VERSION = "0.91RC1";
+
+# no I18N::Japanese; for jperl
+BEGIN {
+	eval { require I18N::Japanese; };
+	I18N::Japanese->unimport() unless($@);
+}
+
+# use bytes for Perl5.8
+BEGIN {
+	eval { require bytes; };
+	bytes->import unless $@;
+}
 
 @EXFUNC = qw(
+	PDFJ::Doc::Doc
 	PDFJ::TextStyle::TStyle PDFJ::Text::Text 
-	PDFJ::NewLine::NewLine PDFJ::Outline::Outline PDFJ::Dest::Dest
+	PDFJ::NewLine::NewLine PDFJ::Outline::Outline PDFJ::Dest::Dest 
+	PDFJ::Null::Null PDFJ::Space::Space
 	PDFJ::ParagraphStyle::PStyle PDFJ::Paragraph::Paragraph 
 	PDFJ::BlockStyle::BStyle PDFJ::Block::Block PDFJ::NewBlock::NewBlock
-	PDFJ::Shape::Shape
+	PDFJ::BlockSkip::BlockSkip PDFJ::Shape::Shape
 	PDFJ::ShapeStyle::SStyle PDFJ::Color::Color
 );
 
 sub import {
 	my($pkg, $code, $prefix) = @_;
 	if( $code ) {
-		croak "code argument '$code' must be 'SJIS' or 'EUC'" 
-			unless $code =~ /^(SJIS|EUC)$/;
-		$Default{Jcode} = $code;
+		croak "code argument '$code' must be 'SJIS','EUC','UTF8' or 'UNICODE'" 
+			unless $code =~ /^(SJIS|EUC|UTF8|UNICODE)$/i;
+		$Default{Jcode} = uc($code);
 	}
 	$prefix ||= "";
-	for my $name(@EXFUNC) {
+	for my $exfunc(@EXFUNC) {
 		my $to = caller;
-		my $from = "";
-		($from, $name) = $name =~ /^(.+)::([^:]+)$/;
+		my($from, $name) = $exfunc =~ /^(.+)::([^:]+)$/;
 		no strict 'refs';
 		*{"${to}::$prefix$name"} = \&{"${from}::$name"};
 	}
+}
+
+# BlockSkip() deprecated and PDFJ::BlockSkip class obsoleted
+# Below for backward compatibility
+sub PDFJ::BlockSkip::BlockSkip {
+	my $skip = (@_ == 1 && ref($_[0]) eq 'HASH') ? $_[0]{skip}: $_[0];
+	PDFJ::Space->new($skip);
 }
 
 $Default{Jcode} = 'SJIS';
 
 $Default{AFontEncoding} = 'WinAnsiEncoding';
 $Default{BaseAFont} = 'Times-Roman';
-$Default{JFontEncoding} = '90ms-RKSJ-H';
+$Default{JFontEncoding} = 
+	$Default{Jcode} eq 'SJIS' ? '90ms-RKSJ-H' :
+	$Default{Jcode} eq 'EUC' ? 'EUC-H' :
+	'UniJIS-UCS2-HW-H';
 $Default{BaseJFont} = 'Ryumin-Light';
+$Default{CIDSystemInfo}{j} = 'Adobe-Japan1-4';
+$Default{CIDSystemInfo}{g} = 'Adobe-GB1-4';
+$Default{CIDSystemInfo}{c} = 'Adobe-CNS1-3';
+$Default{CIDSystemInfo}{k} = 'Adobe-Korea1-1';
+
+# additional 13,89-92 ku CMap for EUC-(H|V)
+$Default{CMapCIDRange}{'EUC-NEC'} = <<END;
+<ada1> <adbe> 7555
+<adc0> <adc1> 7585
+<adc2> <adc2> 8038
+<adc3> <adc3> 7588
+<adc4> <adc4> 8040
+<adc5> <adc5> 7590
+<adc6> <adc6> 8042
+<adc7> <adc8> 7592
+<adc9> <adc9> 8044
+<adca> <adcb> 7595
+<adcc> <adcc> 8043
+<adcd> <adce> 7598
+<adcf> <adcf> 8047
+<add0> <add6> 7601
+<addf> <addf> 8323
+<ade0> <ade3> 7608
+<ade4> <ade4> 8055
+<ade5> <adef> 7613
+<adf0> <adf0> 762
+<adf1> <adf1> 761
+<adf2> <adf2> 769
+<adf3> <adf4> 7624
+<adf5> <adf5> 765
+<adf6> <adf6> 757
+<adf7> <adf7> 756
+<adf8> <adf9> 7629
+<adfa> <adfa> 768
+<adfb> <adfb> 748
+<adfc> <adfc> 747
+<f9a1> <f9fe> 8359
+<faa1> <fab5> 8453
+<fab6> <fab6> 7680
+<fab7> <fafe> 8474
+<fba1> <fbfe> 8546
+<fca1> <fcee> 8640
+<fcf1> <fcfa> 8092
+<fcfb> <fcfb> 751
+<fcfc> <fcfe> 8005
+END
+
+$Default{CMap}{'EUC-NEC-H'} = {
+	CMapName => 'EUC-NEC-H',
+	UseCMap => 'EUC-H',
+	CIDSystemInfo => 'Adobe-Japan1-4',
+	CIDRange => $Default{CMapCIDRange}{'EUC-NEC'},
+};
+
+$Default{CMap}{'EUC-NEC-V'} = {
+	CMapName => 'EUC-NEC-V',
+	UseCMap => 'EUC-V',
+	CIDSystemInfo => 'Adobe-Japan1-4',
+	CIDRange => $Default{CMapCIDRange}{'EUC-NEC'},
+};
 
 # $Default{BBox} = [-200,-331,1116,962];
 $Default{BBox} = [-150,-331,1143,962];
@@ -70,11 +151,15 @@ $Default{HDotXShift} = 0;
 $Default{HDotYShift} = 0.7;
 $Default{HDot}{SJIS} = "\x81\x45";
 $Default{HDot}{EUC} = "\xa1\xa6";
+$Default{HDot}{UNICODE} = "\x30\xfb";
+$Default{HDot}{UTF8} = "\x30\xfb";
 
 $Default{VDotXShift} = 0.5;
 $Default{VDotYShift} = -0.3;
 $Default{VDot}{SJIS} = "\x81\x41";
 $Default{VDot}{EUC} = "\xa1\xa2";
+$Default{VDot}{UNICODE} = "\x30\x01";
+$Default{VDot}{UTF8} = "\x30\x01";
 
 $Default{VHShift} = 0.8;
 $Default{VAShift} = -0.33;
@@ -115,11 +200,21 @@ $Default{Encodings} = {qw(
 	Ext-RKSJ-H            js
 	Ext-RKSJ-V            js
 	EUC-H                 je
+	EUC-NEC-H             je
 	EUC-V                 je
+	EUC-NEC-V             je
+	UniJIS-UCS2-HW-H      ju
+	UniJIS-UCS2-HW-V      ju
+	UniGB-UCS2-H          gu
+	UniGB-UCS2-V          gu
+	UniCNS-UCS2-H         cu
+	UniCNS-UCS2-V         cu
+	UniKS-UCS2-H          ku
+	UniKS-UCS2-V          ku
 )};
 
-$Default{JFD}{'Ryumin-Light'} = 
-	dictionary({
+$Default{FD}{'Ryumin-Light'} = 
+	{
 		Type => name('FontDescriptor'),
 		Ascent => 723,
 		CapHeight => 709,
@@ -135,10 +230,10 @@ $Default{JFD}{'Ryumin-Light'} =
 				value => '010502020300000000000000',
 				outputtype => 'hexliteral')
 		},
-	});
+	};
 
-$Default{JFD}{'GothicBBB-Medium'} =
-	dictionary({
+$Default{FD}{'GothicBBB-Medium'} =
+	{
 		Type => name('FontDescriptor'),
 		Ascent => 752,
 		CapHeight => 737,
@@ -154,7 +249,7 @@ $Default{JFD}{'GothicBBB-Medium'} =
 				value => '0801020b0500000000000000',
 				outputtype => 'hexliteral')
 		}
-	});
+	};
 
 # character class (based on JIS X 4051)
 # 0: begin paren
@@ -175,6 +270,7 @@ $Default{JFD}{'GothicBBB-Medium'} =
 # 15: unit
 # 16: space
 # 17: ascii
+# 18: special
 $Default{Class}{SJIS} = {
 	# begin paren
 	"\x81\x65" => 0, "\x81\x67" => 0, "\x81\x69" => 0, "\x81\x6b" => 0, 
@@ -290,12 +386,74 @@ $Default{PostShift}{EUC} = {
 	# punc
 	"\xa1\xa3" => 500, "\xa1\xa5" => 500, 
 	# post unit
-	"\xa1\xeb" => 500, "\xa1\xec" => 500, "\xa1\xed" => 500, "\xa1\xf1" => 500, 
+	"\xa1\xeb" => 500, "\xa1\xec" => 500, "\xa1\xed" => 500, 
 };
+
+$Default{Class}{UNICODE} = {
+	# begin paren
+	"\x20\x18" => 0, "\x20\x1c" => 0, "\xff\x08" => 0, "\x30\x14" => 0, 
+	"\xff\x3b" => 0, "\xff\x5b" => 0, "\x30\x08" => 0, "\x30\x0a" => 0, 
+	"\x30\x0c" => 0, "\x30\x0e" => 0, "\x30\x10" => 0, 
+	# end paren
+	"\x30\x01" => 1, "\xff\x0c" => 1, 
+	"\x20\x19" => 1, "\x20\x1d" => 1, "\xff\x09" => 1, "\x30\x15" => 1, 
+	"\xff\x3d" => 1, "\xff\x5d" => 1, "\x30\x09" => 1, "\x30\x0b" => 1, 
+	"\x30\x0d" => 1, "\x30\x0f" => 1, "\x30\x11" => 1, 
+	# not at top of line
+	"\x30\xfd" => 2, "\x30\xfe" => 2, "\x30\x9d" => 2, "\x30\x9e" => 2, 
+	"\x30\x05" => 2, "\x30\xfc" => 2, 
+	"\x30\x41" => 2, "\x30\x43" => 2, "\x30\x45" => 2, "\x30\x47" => 2, 
+	"\x30\x49" => 2, "\x30\x63" => 2, "\x30\x83" => 2, "\x30\x85" => 2, 
+	"\x30\x87" => 2, "\x30\x8e" => 2, 
+	"\x30\xa1" => 2, "\x30\xa3" => 2, "\x30\xa5" => 2, "\x30\xa7" => 2, 
+	"\x30\xa9" => 2, "\x30\xc3" => 2, "\x30\xe3" => 2, "\x30\xe5" => 2, 
+	"\x30\xe7" => 2, "\x30\xee" => 2, "\x30\xf5" => 2, "\x30\xf6" => 2, 
+	# ?!
+	"\xff\x1f" => 3, "\xff\x01" => 3, 
+	# dot
+	"\x30\xfb" => 4, "\xff\x1a" => 4, "\xff\x1b" => 4, 
+	# punc
+	"\x30\x02" => 5, "\xff\x0e" => 5, 
+	# leader
+	"\x20\x15" => 6, "\x20\x26" => 6, "\x20\x25" => 6, 
+	# pre unit
+	"\xff\xe5" => 7, "\xff\x04" => 7, "\xff\xe1" => 7, 
+	# post unit
+	"\x00\xb0" => 8, "\x20\x32" => 8, "\x20\x33" => 8, "\xff\xe0" => 8, 
+	"\xff\x05" => 8, "\x20\x30" => 8, 
+	# zenkaku space
+	"\x30\x00" => 9, 
+};
+
+$Default{PreShift}{UNICODE} = {
+	# begin paren
+	"\x20\x18" => 500, "\x20\x1c" => 500, "\xff\x08" => 500, "\x30\x14" => 500, 
+	"\xff\x3b" => 500, "\xff\x5b" => 500, "\x30\x08" => 500, "\x30\x0a" => 500, 
+	"\x30\x0c" => 500, "\x30\x0e" => 500, "\x30\x10" => 500, 
+	# dot
+	"\x30\xfb" => 250, "\xff\x1a" => 250, "\xff\x1b" => 250, 
+};
+
+$Default{PostShift}{UNICODE} = {
+	# end paren
+	"\x30\x01" => 500, "\xff\x0c" => 500, 
+	"\x20\x19" => 500, "\x20\x1d" => 500, "\xff\x09" => 500, "\x30\x15" => 500, 
+	"\xff\x3d" => 500, "\xff\x5d" => 500, "\x30\x09" => 500, "\x30\x0b" => 500, 
+	"\x30\x0d" => 500, "\x30\x0f" => 500, "\x30\x11" => 500, 
+	# dot
+	"\x30\xfb" => 250, "\xff\x1a" => 250, "\xff\x1b" => 250, 
+	# punc
+	"\x30\x02" => 500, "\xff\x0e" => 500, 
+	# post unit
+	"\x00\xb0" => 500, "\x20\x32" => 500, "\x20\x33" => 500, 
+};
+
+$Default{NoRubyOverlap} = 0;
+$Default{RubyPreOverlap} = { map {$_ => 1} (0, 2, 6, 9, 10) };
+$Default{RubyPostOverlap} = { map {$_ => 1} (1, 5, 6, 9, 10) };
 
 # glue width
 # each element means [min, normal, max, preference]
-# ruby overlap feature is omitted
 sub GlueNon { [0, 0, 0] }
 sub Glue004 { [0, 0, 250] }
 sub Glue0443 { [0, 250, 250, 3] }
@@ -327,6 +485,7 @@ $Default{Glue} = [
 		GlueNon,      # 15: unit
 		Glue004,      # 16: space
 		GlueNon,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 1: end paren
 	[
@@ -348,6 +507,7 @@ $Default{Glue} = [
 		Glue0222,      # 15: unit
 		Glue0222,      # 16: space
 		Glue0222,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 2: not at top of line
 	[
@@ -369,6 +529,7 @@ $Default{Glue} = [
 		Glue8421,      # 15: unit
 		Glue004,      # 16: space
 		Glue8421,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 3: ?!
 	[
@@ -390,6 +551,7 @@ $Default{Glue} = [
 		Glue8421,      # 15: unit
 		Glue004,      # 16: space
 		Glue8421,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 4: dot
 	[
@@ -411,6 +573,7 @@ $Default{Glue} = [
 		Glue0443,      # 15: unit
 		Glue0443,      # 16: space
 		Glue0443,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 5: punc
 	[
@@ -432,6 +595,7 @@ $Default{Glue} = [
 		Glue222,      # 15: unit
 		Glue222,      # 16: space
 		Glue222,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 6: leader
 	[
@@ -453,6 +617,7 @@ $Default{Glue} = [
 		Glue004,      # 15: unit
 		Glue004,      # 16: space
 		Glue004,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 7: pre unit
 	[
@@ -474,6 +639,7 @@ $Default{Glue} = [
 		Glue004,      # 15: unit
 		Glue004,      # 16: space
 		Glue004,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 8: post unit
 	[
@@ -495,6 +661,7 @@ $Default{Glue} = [
 		Glue004,      # 15: unit
 		Glue004,      # 16: space
 		Glue004,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 9: zenkaku space
 	[
@@ -516,6 +683,7 @@ $Default{Glue} = [
 		GlueNon,      # 15: unit
 		Glue004,      # 16: space
 		GlueNon,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 10: hirakana
 	[
@@ -537,6 +705,7 @@ $Default{Glue} = [
 		Glue8421,      # 15: unit
 		Glue004,      # 16: space
 		Glue8421,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 11: japanese
 	[
@@ -558,6 +727,7 @@ $Default{Glue} = [
 		Glue8421,      # 15: unit
 		Glue004,      # 16: space
 		Glue8421,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 12: suffixed
 	[
@@ -579,6 +749,7 @@ $Default{Glue} = [
 		Glue004,      # 15: unit
 		Glue004,      # 16: space
 		Glue844,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 13: rubied
 	[
@@ -600,6 +771,7 @@ $Default{Glue} = [
 		Glue8421,      # 15: unit
 		Glue004,      # 16: space
 		Glue8421,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 14: number
 	[
@@ -621,6 +793,7 @@ $Default{Glue} = [
 		Glue8421,      # 15: unit
 		Glue004,      # 16: space
 		GlueNon,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 15: unit
 	[
@@ -642,6 +815,7 @@ $Default{Glue} = [
 		GlueNon,      # 15: unit
 		Glue004,      # 16: space
 		GlueNon,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 16: space
 	[
@@ -663,6 +837,7 @@ $Default{Glue} = [
 		Glue004,      # 15: unit
 		Glue004,      # 16: space
 		Glue004,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 	# 17: ascii
 	[
@@ -684,28 +859,53 @@ $Default{Glue} = [
 		GlueNon,      # 15: unit
 		Glue004,      # 16: space
 		GlueNon,      # 17: ascii
+		GlueNon,      # 18: special
+	],
+	# 18: special
+	[
+		GlueNon,      # 0: begin paren
+		GlueNon,      # 1: end paren
+		GlueNon,      # 2: not at top of line
+		GlueNon,      # 3: ?!
+		GlueNon,      # 4: dot
+		GlueNon,      # 5: punc
+		GlueNon,      # 6: leader
+		GlueNon,      # 7: pre unit
+		GlueNon,      # 8: post unit
+		GlueNon,      # 9: zenkaku space
+		GlueNon,      # 10: hirakana
+		GlueNon,      # 11: japanese
+		GlueNon,      # 12: suffixed
+		GlueNon,      # 13: rubied
+		GlueNon,      # 14: number
+		GlueNon,      # 15: unit
+		GlueNon,      # 16: space
+		GlueNon,      # 17: ascii
+		GlueNon,      # 18: special
 	],
 ];
 
 $Default{Splittable} = [
-	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1],
-	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1],
-	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1],
-	[1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1],
-	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0],
-	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0],
+	#0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], # 0
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], # 1
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], # 2
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], # 3
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], # 4
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], # 5
+	[1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], # 6
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1], # 7
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], # 8
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], # 9
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], # 10
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], # 11
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1], # 12
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], # 13
+	[1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1], # 14
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1], # 15
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], # 16
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1], # 17
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], # 18
 ];
 
 # 1 if not at begin of line
@@ -715,7 +915,6 @@ $Default{NoBOL} =
 # 1 if not at end of line
 $Default{NoEOL} = 
 	[1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-
 
 #--------------------------------------------------------------------------
 package PDFJ::Util;
@@ -732,11 +931,42 @@ sub hyphenate {
 	$TeXHyphenObj->hyphenate($word);
 }
 
+sub objisa {
+	my($target, $class) = @_;
+	ref($target) && UNIVERSAL::isa($target, $class);
+}
+
 sub uriencode {
 	my($str) = @_;
 	$str =~ s/([^;\/?:@&=+\$,A-Za-z0-9\-_.!~*'()])/sprintf("%%%02X",ord($1))/ge
 		unless $str =~ /%[0-9a-fA-F]{2}/;
 	$str;
+}
+
+sub transmatrix {
+	my($x, $y, $transtype, @args) = @_;
+	if( ref($args[0]) eq 'ARRAY' ) {
+		@args = @{$args[0]};
+	}
+	my @result;
+	if( $transtype ) {
+		if( $transtype eq 'magnify' ) {
+			my($xmag, $ymag) = @args;
+			@result = ($xmag, 0, 0, $ymag, $x, $y);
+		} elsif( $transtype eq 'rotate' ) {
+			my($rad) = @args;
+			my $sin = sin($rad);
+			my $msin = -$sin;
+			my $cos = cos($rad);
+			@result = ($cos, $sin, $msin, $cos, $x, $y);
+		} elsif( $transtype eq 'distort' ) {
+			my($xtan, $ytan) = @args;
+			@result = (1, $xtan, $ytan, 1, $x, $y);
+		} else {
+			croak "unknown transformation type";
+		}
+	}
+	@result;
 }
 
 my $SubsetTag;
@@ -750,7 +980,7 @@ sub subsettag {
 }
 
 sub ttfopen {
-	my($ttffile, $encoding) = @_;
+	my($ttffile) = @_;
 	require PDFJ::TTF;
 	my $ttf;
 	if( $ttffile =~ /(\.ttc):(\d)$/i ) {
@@ -764,6 +994,15 @@ sub ttfopen {
 	croak "cannot open $ttffile" unless $ttf;
 	$ttf->read_table(':all');
 	$ttf;
+}
+
+sub otfopen {
+	my($otffile) = @_;
+	require PDFJ::OTF;
+	my $otf = new PDFJ::OTF $otffile;
+	croak "cannot open $otffile" unless $otf;
+	$otf->read_table(':all');
+	$otf;
 }
 
 sub deflate {
@@ -836,6 +1075,142 @@ sub ascii85chunk {
 	$resultchunk;
 }
 
+sub makestream {
+	my($filter, $src, @addfilters) = @_;
+	my($encoded, $deflated, @filters);
+	if( $filter =~ /af/ ) {
+		($encoded, $deflated) = deflate_ascii85encode($src);
+		return unless $encoded;
+		@filters = $deflated ? qw(ASCII85Decode FlateDecode) :
+			qw(ASCII85Decode);
+	} elsif( $filter =~ /f/ ) {
+	 	$encoded = deflate($src) or return;
+		@filters = qw(FlateDecode);
+	} elsif( $filter =~ /a/ ) {
+	 	$encoded = ascii85encode($src) or return;
+		@filters = qw(ASCII85Decode);
+	} else {
+		return;
+	}
+	push @filters, @addfilters if @addfilters;
+	$filter = @filters > 1 ? [map {PDFJ::Object::name($_)} @filters] : 
+		PDFJ::Object::name($filters[0]);
+	($encoded, $filter);
+}
+
+# make random ID string for ID entry
+sub makerandid {
+	my $id;
+	for(1..16) {
+		$id .= chr(rand(255));
+	}
+	$id;
+}
+
+# make (encryptionkey, O entry, U entry, P entry)
+# see makeEncryptP about $allowspec 
+sub makecryptkey {
+	require Digest::MD5;
+	my($ownerpass, $userpass, $allowspec, $fileid) = @_;
+	my $Pentry = makeEncryptP($allowspec);
+	$ownerpass ||= $userpass;
+	$ownerpass = trimpass($ownerpass);
+	$userpass = trimpass($userpass);
+	my $md5obj = Digest::MD5->new;
+	$md5obj->add($ownerpass);
+	my $rc4key = substr($md5obj->digest, 0, 5);
+	my $Oentry = RC4($userpass, $rc4key);
+	$md5obj->reset;
+	$md5obj->add($userpass);
+	$md5obj->add($Oentry);
+	$md5obj->add(pack("V", $Pentry));
+	$md5obj->add($fileid);
+	$rc4key = substr($md5obj->digest, 0, 5);
+	my $Uentry = RC4(passpadding(), $rc4key);
+	($rc4key, $Oentry, $Uentry, $Pentry);
+}
+
+sub passpadding {
+	"\x28\xbf\x4e\x5e\x4e\x75\x8a\x41\x64\x00\x4e\x56\xff\xfa\x01\x08\x2e\x2e\x00\xb6\xd0\x68\x3e\x80\x2f\x0c\xa9\xfe\x64\x53\x69\x7a";
+}
+
+sub trimpass {
+	my($pass) = @_;
+	substr($pass . passpadding(), 0, 32);
+}
+
+# RC4 encrypting
+# based on Crypt::RC4 by Kurt Kincaid 
+my @RC4state;
+my $RC4x = 0;
+my $RC4y = 0;
+sub RC4 {
+	my($message, $pass) = @_;
+	my(@state, $x, $y);
+	if( defined $pass ) {
+		my @k = unpack( 'C*', $pass );
+		@state = 0..255;
+		my $y = 0;
+		for my $x (0..255) {
+			$y = ( $k[$x % @k] + $state[$x] + $y ) % 256;
+			@state[$x, $y] = @state[$y, $x];
+		}
+		@RC4state = @state;
+		$RC4x = 0;
+		$RC4y = 0;
+	} else {
+		@state = @RC4state;
+	}
+	$x = $RC4x;
+	$y = $RC4y;
+	my $num_pieces = do {
+		my $num = length($message) / 1024;
+		my $int = int $num;
+		$int == $num ? $int : $int+1;
+	};
+	for my $piece ( 0..$num_pieces - 1 ) {
+		my @message = unpack "C*", substr($message, $piece * 1024, 1024);
+		for ( @message ) {
+			$x = 0 if ++$x > 255;
+			$y -= 256 if ($y += $state[$x]) > 255;
+			@state[$x, $y] = @state[$y, $x];
+			$_ ^= $state[( $state[$x] + $state[$y] ) % 256];
+		}
+		substr($message, $piece * 1024, 1024) = pack "C*", @message;
+	}
+	$message;
+}
+
+# make integer value of P entry of Encrypt entry
+# $allowspec: P:rint, M:odify, C:opy, N:ote
+sub makeEncryptP {
+	my($allowspec) = @_;
+	my $value = 0xffffffc0;
+	if( $allowspec =~ /P/ ) {
+		$value |= 1 << 2;
+	}
+	if( $allowspec =~ /M/ ) {
+		$value |= 1 << 3;
+	}
+	if( $allowspec =~ /C/ ) {
+		$value |= 1 << 4;
+	}
+	if( $allowspec =~ /N/ ) {
+		$value |= 1 << 5;
+	}
+	$value;
+}
+
+sub u32toi32 {
+	my($value) = @_;
+	if( $value & 0x80000000 ) {
+		$value ^= 0xffffffff;
+		-($value + 1);
+	} else {
+		$value;
+	}
+}
+
 sub tounicode {
 	my($str, $init) = @_;
 	require PDFJ::Unicode;
@@ -844,6 +1219,10 @@ sub tounicode {
 		$result .= PDFJ::Unicode::sjistounicode($str);
 	} elsif( $PDFJ::Default{Jcode} eq 'EUC' ) {
 		$result .= PDFJ::Unicode::euctounicode($str);
+	} elsif( $PDFJ::Default{Jcode} eq 'UTF8' ) {
+		$result .= PDFJ::Unicode::utf8tounicode($str);
+	} elsif( $PDFJ::Default{Jcode} eq 'UNICODE' ) {
+		$result .= $str;
 	}
 	$result;
 }
@@ -867,6 +1246,59 @@ sub reader {
 	}
 }
 
+sub methodargs {
+	my $names = shift;
+	if( @_ == 2 && ref($_[1]) eq 'HASH' ) {
+		($_[0], @{$_[1]}{@$names});
+	} else {
+		@_;
+	}
+}
+
+sub listargs2ref {
+	my($pre, $post) = (shift, shift);
+	return @_ if @_ < $pre + $post;
+	my @list = $post ? splice(@_, $pre, -$post) : splice(@_, $pre);
+	my $list = (@list == 1 && ref($list[0]) eq 'ARRAY') ? $list[0] : \@list;
+	splice @_, $pre, 0, $list;
+	@_;
+}
+
+sub strstyle2hashref {
+	my($style) = @_;
+	my($result) = _strstyle2hashref($style);
+	$result;
+}
+
+sub _strstyle2hashref {
+	my($style, $brace) = @_;
+	return ($style) if ref($style);
+	my %result;
+	while( $style =~ /(\S+?)\s*:\s*/ ) {
+		my($name, $rest) = ($1, $');
+		my($value, $delim);
+		if( $rest =~ s/^\{// ) {
+			($value, $style) = _strstyle2hashref($rest, 1);
+		} elsif( $brace ) {
+			($value, $delim) = $rest =~ /(.*?)(;|\}|$)/;
+			$style = $';
+			$value =~ s/\s+$//;
+		} elsif( $rest =~ /^\[(.*?)\]\s*(;|$)/ ) {
+			($value, $delim) = ($1, $2);
+			$style = $';
+			my @tmp = split /\s*,\s*/, $value;
+			$value = \@tmp;
+		} else {
+			($value, $delim) = $rest =~ /(.*?)(;|$)/;
+			$style = $';
+			$value =~ s/\s+$//;
+		}
+		$result{$name} = $value;
+		last if $delim && $delim eq '}';
+	}
+	(\%result, $style);
+}
+
 #--------------------------------------------------------------------------
 package PDFJ::Doc;
 use strict;
@@ -874,8 +1306,11 @@ use Carp;
 use FileHandle;
 use PDFJ::Object;
 
+sub Doc { PDFJ::Doc->new(@_) }
+
 sub new {
-	my($class, $version, $pagewidth, $pageheight) = @_;
+	my($class, $version, $pagewidth, $pageheight) = 
+		PDFJ::Util::methodargs([qw(version pagewidth pageheight)], @_);
 	my $objtable = PDFJ::ObjTable->new;
 	my $self = bless {
 		version => $version,
@@ -900,25 +1335,160 @@ sub new {
 		Type => name('Catalog'),
 		Pages => $self->{pagetree},
 		}));
+	my $cdate = datestring();
+	$self->{info} = $self->indirect(dictionary({
+		Producer => textstring("PDFJ $PDFJ::VERSION"),
+		CreationDate => $cdate,
+		ModDate => $cdate,
+		}));
+	my $id = PDFJ::Util::makerandid();
+	$self->{idstring} = $id;
+	$self->{id} = array([string($id), string($id)]);
 	$self;
 }
 
+sub pagewidth {
+	my($self) = @_;
+	$self->{pagewidth};
+}
+
+sub pageheight {
+	my($self) = @_;
+	$self->{pageheight};
+}
+
 sub filter {
-	my($self, $flag) = @_;
-	if( defined $flag ) {
-		$self->{filter} = $flag; # a:ascii85, f:flate, af:both 
+	my($self, $filter) = PDFJ::Util::methodargs([qw(filter)], @_);
+	if( defined $filter ) {
+		$self->{filter} = $filter; # a:ascii85, f:flate, af:both 
 	}
 	$self->{filter};
 }
 
+sub setoption {
+	my($self, $name, $value) = PDFJ::Util::methodargs([qw(name value)], @_);
+	$self->{option}{$name} = $value;
+}
+
+sub getoption {
+	my($self, $name) = PDFJ::Util::methodargs([qw(name)], @_);
+	$self->{option}{$name};
+}
+
+sub add_info {
+	my($self, @args) = @_;
+	my %args;
+	if( @args == 1 && ref($args[0]) eq 'HASH' ) {
+		%args = %{$args[0]};
+	} else {
+		%args = @args;
+	}
+	for my $key(keys %args) {
+		$self->{info}->set($key => textstring($args{$key}));
+	}
+}
+
+sub encrypt {
+	my($self, $ownerpass, $userpass, $allow) = 
+		PDFJ::Util::methodargs([qw(ownerpass userpass allow)], @_);
+	my $id = $self->{idstring};
+	my($encryptkey, $Oentry, $Uentry, $Pentry) = 
+		PDFJ::Util::makecryptkey($ownerpass, $userpass, $allow, $id);
+	$self->{encryptkey} = $encryptkey;
+	$self->{encrypt} = $self->indirect(dictionary({
+		Filter => name('Standard'),
+		V => 1,
+		R => 2,
+		O => string($Oentry),
+		U => string($Uentry),
+		P => PDFJ::Util::u32toi32($Pentry),
+		}));
+	$self->{encrypt}->nocrypt;
+}
+
+sub cmap {
+	my($self, $encoding) = @_;
+	if( $PDFJ::Default{CMap}{$encoding} ) {
+		$self->makecmap($PDFJ::Default{CMap}{$encoding});
+	} else {
+		name($encoding);
+	}
+}
+
+sub makecmap {
+	my($self, $cmapdata) = @_;
+	my $name = $cmapdata->{CMapName};
+	unless( $self->{cmap}{$name} ) {
+		my($r, $o, $s) = split /-/, $cmapdata->{CIDSystemInfo};
+		my $usecmap = $cmapdata->{UseCMap};
+		my $cidrange = $cmapdata->{CIDRange};
+		my $wmode = $name =~ /-H$/ ? 0 : 1;
+		$self->{cmap}{$name} = $self->indirect(stream(dictionary => {
+			Type => name('CMap'),
+			CMapName => name($name),
+			CIDSystemInfo => {
+				Registry => $r,
+				Ordering => $o,
+				Supplement => $s
+			},
+			WMode => $wmode,
+			UseCMap => name($usecmap),
+	}, stream => _cmap($name, $usecmap, $wmode, $r, $o, $s, $cidrange)));
+	}
+	$self->{cmap}{$name};
+}
+
+# NOT method
+sub _cmap {
+	my($name, $usecmap, $wmode, $r, $o, $s, $cidrange) = @_;
+	my $result = <<END;
+%!PS-Adobe-3.0 Resource-CMap
+%%DocumentNeededResources: ProcSet (CIDInit)
+%%DocumentNeededResources: CMap ($usecmap)
+%%IncludeResource: ProcSet (CIDInit)
+%%IncludeResource: CMap ($usecmap)
+%%BeginResource: CMap ($name)
+%%Title: ($name $r $o $s)
+%%Version: 1
+%%Copyright: Copyright 2004 Sey Nakajima
+%%EndComments
+/CIDInit /ProcSet findresource begin
+12 dict begin
+begincmap
+/$usecmap usecmap
+/CIDSystemInfo 3 dict dup begin
+  /Registry ($r) def
+  /Ordering ($o) def
+  /Supplement $s def
+end def
+/CMapName /$name def
+/CMapVersion 1 def
+/CMapType 1 def
+/WMode $wmode def
+END
+	my $rangecount = $cidrange =~ s/\n/\n/g;
+	$result .= "$rangecount begincidrange\n";
+	$result .= $cidrange;
+	$result .= <<END;
+endcidrange
+endcmap
+CMapName currentdict /CMap defineresource pop
+end
+end
+%%EndResource
+%%EOF
+END
+	$result;
+}
+
 sub _add_outline {
 	my($self, $title, $dest, $parent) = @_;
-	$title = PDFJ::Util::tounicode($title, 1) if $title =~ /[\x80-\xff]/;
+	# $title = PDFJ::Util::tounicode($title, 1) if $title =~ /[\x80-\xff]/;
 	my $lastitem = $parent->get('Last');
 	my $newitem;
 	if( $lastitem ) {
 		$newitem = $self->indirect(dictionary({
-			Title => string($title), 
+			Title => textstring($title), 
 			Parent => $parent,
 			Prev => $lastitem,
 			Count => 0,
@@ -928,7 +1498,7 @@ sub _add_outline {
 		$parent->set('Last', $newitem);
 	} else {
 		$newitem = $self->indirect(dictionary({
-			Title => string($title), 
+			Title => textstring($title), 
 			Parent => $parent,
 			Count => 0,
 			}));
@@ -944,7 +1514,10 @@ sub _add_outline {
 }
 
 sub add_outline {
-	my($self, $title, $dest, $level) = @_;
+	my($self, $title, $page, $x, $y, $level) = @_;
+	return unless UNIVERSAL::isa($page, 'PDFJ::Page');
+	# add to outline
+	my $dest = $page->dest('XYZ', $x, $y, 0);
 	unless( $self->{outline} ) {
 		$self->{outline} = $self->indirect(dictionary({
 			Type => name('Outlines'),
@@ -954,22 +1527,51 @@ sub add_outline {
 		$self->{catalog}->set('PageMode', name('UseOutlines'));
 	}
 	my $parent = $self->{outline};
-	while( $level-- ) {
+	for( my $j = 0; $j < $level; $j++ ) {
 		$parent = $parent->get('Last') ?
 			$parent->get('Last') :
 			$self->_add_outline('', undef, $parent);
 	}
 	$self->_add_outline($title, $dest, $parent);
+	# add to outlinetree
+	unless( $self->{outlinetree} ) {
+		$self->{outlinetree} = [];
+	}
+	$parent = $self->{outlinetree};
+	for( my $j = 0; $j < $level; $j++ ) {
+		push @$parent, ['', undef, undef, undef, []] unless @$parent;
+		$parent = $$parent[$#$parent][4];
+	}
+	push @$parent, [$title, $page, $x, $y, []];
+}
+
+sub outlinetree {
+	my($self) = @_;
+	$self->{outlinetree};
 }
 
 sub add_dest {
-	my($self, $name, $dest) = @_;
-	$self->{dest}{$name} = $dest;
+	my($self, $name, $page, $x, $y) = @_;
+	return unless UNIVERSAL::isa($page, 'PDFJ::Page');
+	my $dest = $page->dest('XYZ', $x, $y, 0);
+	push @{$self->{dest}{$name}}, $dest;
+	push @{$self->{destpage}{$name}}, [$page, $x, $y];
+}
+
+sub destnames {
+	my($self) = @_;
+	keys %{$self->{dest}};
 }
 
 sub dest {
 	my($self, $name) = @_;
 	$self->{dest}{$name};
+}
+
+sub destpage {
+	my($self, $name) = 
+		PDFJ::Util::methodargs([qw(name)], @_);
+	$self->{destpage}{$name};
 }
 
 sub indirect {
@@ -978,37 +1580,60 @@ sub indirect {
 }
 
 sub print {
-	my($self, $filename) = @_;
+	my($self, $file) = PDFJ::Util::methodargs([qw(file)], @_);
 	$self->_solve_link;
+	$self->_setunusedfont;
 	$self->_complete_subsetfont;
-	my $handle = FileHandle->new(">$filename");
+	my($handle, $needclose);
+	if( ref($file) eq 'GLOB' || PDFJ::Util::objisa($file, 'IO::Handle') ) {
+		$handle = $file;
+		$needclose = 0;
+	} else {
+		$handle = FileHandle->new(">$file");
+		$needclose = 1;
+	}
 	return unless $handle;
 	my $fobj = PDFJ::File->new($self->{version}, $handle, $self->{objtable}, 
-		$self->{catalog});
+		$self->{catalog}, $self->{id}, $self->{info}, $self->{encrypt}, 
+		$self->{encryptkey}, $self->{filter});
 	$fobj->print;
-	close $handle;
+	close $handle if $needclose;
 }
 
 sub new_page {
-	my $self = shift;
-	PDFJ::Page->new($self, @_);
+	my($self, $pagewidth, $pageheight, $dur, $trans)
+		= PDFJ::Util::methodargs([qw(pagewidth pageheight dur trans)], @_);
+	PDFJ::Page->new($self, -1, $pagewidth, $pageheight, $dur, $trans);
+}
+
+sub insert_page {
+	my($self, $idx, $pagewidth, $pageheight, $dur, $trans)
+		= PDFJ::Util::methodargs([qw(number pagewidth pageheight dur trans)], @_);
+	PDFJ::Page->new($self, $idx, $pagewidth, $pageheight, $dur, $trans);
 }
 
 sub get_page {
-	my($self, $idx) = @_;
+	my($self, $idx) = PDFJ::Util::methodargs([qw(number)], @_);
 	$self->{pageobjlist}->[$idx];
 }
 
-sub get_lastpagenum {
+sub lastpagenum {
 	my $self = shift;
 	scalar @{$self->{pagelist}};
 }
 
+# for backward conpatible
+sub get_lastpagenum {
+	&lastpagenum;
+}
+
 sub new_font {
-	if( @_ > 3 ) {
-		&new_combofont;
+	my($self, $basefont, $encoding, $abasefont, $aencoding, $asize) = 
+		PDFJ::Util::methodargs([qw(basefont encoding abasefont aencoding asize)], @_);
+	if( $abasefont ) {
+		$self->new_combofont($basefont, $encoding, $abasefont, $aencoding, $asize);
 	} else {
-		&new_singlefont;
+		$self->new_singlefont($basefont, $encoding);
 	}
 }
 
@@ -1019,12 +1644,13 @@ sub new_singlefont {
 	if( $type eq 'a' ) {
 		new_afont($self, $basefont, $encoding);
 	} elsif( $type eq 'j' ) {
-		new_jfont($self, $basefont, $encoding);
-	} elsif( $basefont =~ /\.ttf$/i || $basefont =~ /\.ttc:\d$/i ) {
+		new_cidfont($self, $basefont, $encoding);
+	} elsif( $basefont =~ /\.ttf$/i || $basefont =~ /\.ttc:\d$/i || 
+		$basefont =~ /\.otf$/i ) {
 		if( $PDFJ::Default{Encodings}{$encoding} eq 'a' ) {
 			new_afont($self, $basefont, $encoding);
 		} else {
-			new_jfont($self, $basefont, $encoding);
+			new_cidfont($self, $basefont, $encoding);
 		}
 	} else {
 		croak "unknown font: $basefont";
@@ -1032,10 +1658,10 @@ sub new_singlefont {
 }
 
 sub new_combofont {
-	my($self, $zbase, $zenc, $hbase, $henc) = @_;
-	my $hfont = UNIVERSAL::isa($hbase, "PDFJ::AFont") ? $hbase :
+	my($self, $zbase, $zenc, $hbase, $henc, $hsize) = @_;
+	my $hfont = PDFJ::Util::objisa($hbase, "PDFJ::AFont") ? $hbase :
 		new_afont($self, $hbase, $henc);
-	new_jfont($self, $zbase, $zenc, $hfont);
+	new_cidfont($self, $zbase, $zenc, $hfont, $hsize);
 }
 
 sub new_afont {
@@ -1046,39 +1672,46 @@ sub new_afont {
 		unless $PDFJ::Default{Encodings}{$encoding} eq 'a';
 	if( $basefont =~ /\.ttf$/i || $basefont =~ /\.ttc:\d$/i ) {
 		PDFJ::AFont->new_ttf($self, $basefont, $encoding);
+	} elsif( $basefont =~ /\.otf$/i ) {
+		PDFJ::AFont->new_otf($self, $basefont, $encoding);
 	} else {
 		PDFJ::AFont->new_std($self, $basefont, $encoding);
 	}
 }
 
-sub new_jfont {
-	my($self, $basefont, $encoding, $hfont) = @_;
+sub new_cidfont {
+	my($self, $basefont, $encoding, $hfont, $hsize) = @_;
 	$basefont ||= $PDFJ::Default{BaseJFont};
 	$encoding ||= $PDFJ::Default{JFontEncoding};
-	croak "encoding type mismatch" 
-		unless $PDFJ::Default{Encodings}{$encoding} eq 
-			($PDFJ::Default{Jcode} eq 'SJIS' ? 'js' : 'je');
+	my $enctype = $PDFJ::Default{Encodings}{$encoding};
+	my $codetype = $PDFJ::Default{Jcode} eq 'SJIS' ? 's' : 
+		$PDFJ::Default{Jcode} eq 'EUC' ? 'e' : 'u';
+	croak "encoding type mismatch" unless $enctype =~ /$codetype/;
 	if( $basefont =~ /\.ttf$/i || $basefont =~ /\.ttc:\d$/i ) {
-		PDFJ::JFont->new_ttf($self, $basefont, $encoding, $hfont);
+		PDFJ::CIDFont->new_ttf($self, $basefont, $encoding, $hfont, $hsize);
+	} elsif( $basefont =~ /\.otf$/i ) {
+		PDFJ::CIDFont->new_otf($self, $basefont, $encoding, $hfont, $hsize);
 	} else {
-		PDFJ::JFont->new_std($self, $basefont, $encoding, $hfont);
+		PDFJ::CIDFont->new_std($self, $basefont, $encoding, $hfont, $hsize);
 	}
 }
 
 sub new_image {
-	my($self, $src, $pxwidth, $pxheight, $width, $height, $padding, $colorspace)
-		= @_;
+	my($self, $src, $pxwidth, $pxheight, $width, $height, $padding, 
+		$colorspace, $type)
+		= PDFJ::Util::methodargs([qw(src pxwidth pxheight width height padding 
+		colorspace type)], @_);
 	PDFJ::Image->new($self, $src, $pxwidth, $pxheight, $width, $height, 
-		$padding, $colorspace);
+		$padding, $colorspace, $type);
 }
 
 sub italic {
-	my($self, @args) = @_;
+	my($self, @args) = PDFJ::Util::methodargs([qw(base decorated)], @_);
 	$self->_deco('italic', @args);
 }
 
 sub bold {
-	my($self, @args) = @_;
+	my($self, @args) = PDFJ::Util::methodargs([qw(base decorated)], @_);
 	$self->_deco('bold', @args);
 }
 
@@ -1092,12 +1725,12 @@ sub _deco {
 		if( $base->isa("PDFJ::AFont") ) {
 			croak "font type mismatch" unless $deco->isa("PDFJ::AFont");
 			$self->{$style}{$base->{name}} = $deco->{name};
-		} elsif( $base->isa("PDFJ::JFont") ) {
-			croak "font type mismatch" unless $deco->isa("PDFJ::JFont");
+		} elsif( $base->isa("PDFJ::CIDFont") ) {
+			croak "font type mismatch" unless $deco->isa("PDFJ::CIDFont");
 			if( $base->{combo} ) {
 				croak "font combo type mismatch" unless $deco->{combo};
-				$self->{$style}{$base->{zname}, $base->{hname}} = 
-					join($;, $deco->{zname}, $deco->{hname});
+				$self->{$style}{$base->{zname}, $base->{hname}, $base->{hsize}}
+					= join($;, $deco->{zname}, $deco->{hname}, $deco->{hsize});
 			} else {
 				croak "font combo type mismatch" if $deco->{combo};
 				$self->{$style}{$base->{zname}} = $deco->{zname};
@@ -1109,14 +1742,25 @@ sub _deco {
 sub _bolditalicname {
 	my($self, $name, $style) = @_; # $style: PDFJ::TStyle object
 	my $dname = $name;
-	$dname = $self->{italic}{$dname} || $dname if $style->{italic};
-	$dname = $self->{bold}{$dname} || $dname if $style->{bold};
+	$dname = $self->{italic}{$dname} if $style->{italic};
+	$dname = $self->{bold}{$dname} if $style->{bold};
 	$dname;
 }
 
-sub _bold {
-	my($self, $name) = @_;
-	$self->{fontlist}{$self->{bold}{$name}}
+sub _bolditalicfont {
+	my($self, $font, $style) = @_; # $style: PDFJ::TStyle object
+	my $name = $font->fname;
+	my $docobj = $font->{docobj};
+	my $dname = $name;
+	if( $style->{italic} ) {
+		$dname = $self->{italic}{$dname} 
+			or croak "missing italic font";
+	}
+	if( $style->{bold} ) {
+		$dname = $self->{bold}{$dname} 
+			or croak "missing bold font";
+	}
+	$dname eq $name ? $font : $docobj->_fontobj($dname);
 }
 
 sub _solve_link {
@@ -1126,15 +1770,37 @@ sub _solve_link {
 	}
 }
 
+sub _usefonts {
+	my($self, @names) = @_;
+	for my $name(@names) {
+		$self->{usedfont}{$name} = 1;
+	}
+}
+
+sub _setunusedfont {
+	my $self = shift;
+	for my $name(keys %{$self->{fontlist}}) {
+		unless( $self->{usedfont}{$name} ) {
+			$self->{fontlist}{$name}->unused(1);
+		}
+	}
+}
+
 sub _complete_subsetfont {
 	my $self = shift;
 	for my $name(keys %{$self->{subsetttf}}) {
 		my $sttf = $self->{subsetttf}{$name};
 		my $ttf = $sttf->{ttf};
 		my $direction = $sttf->{direction};
+		my $encoding = $sttf->{encoding};
 		my @unicodes = sort keys %{$sttf->{subset_unicodes}};
+		if( $self->{fontlist}{$name}->unused ) {
+			carp "a font which is used in Text but not used in Page exists"
+				if @unicodes;
+			next;
+		}
 		my $font = $self->{fontlist}{$name};
-		my($subset, $c2g, $cidset) = $ttf->subset($direction, @unicodes);
+		my($subset, $c2g, $cidset) = $ttf->subset($encoding, @unicodes);
 		my $size = length $subset;
 		my($encoded, $filter) = $self->_makestream(\$subset);
 		croak "cannot encode ttf subset data" unless $encoded;
@@ -1161,28 +1827,35 @@ if(0) {
 			}, stream => $encoded)));
 }
 	}
+	for my $name(keys %{$self->{subsetotf}}) {
+		my $sotf = $self->{subsetotf}{$name};
+		my $otf = $sotf->{otf};
+		my $direction = $sotf->{direction};
+		my $encoding = $sotf->{encoding};
+		my @unicodes = sort keys %{$sotf->{subset_unicodes}};
+		if( $self->{fontlist}{$name}->unused ) {
+			carp "a font which is used in Text but not used in Page exists"
+				if @unicodes;
+			next;
+		}
+		my $font = $self->{fontlist}{$name};
+		my($subset) = $otf->subset($encoding, @unicodes);
+		my $size = length $subset;
+		my($encoded, $filter) = $self->_makestream(\$subset);
+		croak "cannot encode otf subset data" unless $encoded;
+		$font->get('DescendantFonts')->get(0)->get('FontDescriptor')->set(
+			FontFile3 => $self->indirect(stream(dictionary => {
+				Subtype => name('OpenType'),
+				Filter  => $filter,
+				Length  => length($encoded),
+				Length1 => $size,
+			}, stream => $encoded)));
+	}
 }
 
 sub _makestream {
 	my($self, $src, @addfilters) = @_;
-	my($encoded, $deflated, @filters);
-	if( $self->filter =~ /af/ ) {
-		($encoded, $deflated) = PDFJ::Util::deflate_ascii85encode($src);
-		return unless $encoded;
-		@filters = $deflated ? qw(ASCII85Decode FlateDecode) :
-			qw(ASCII85Decode);
-	} elsif( $self->filter =~ /f/ ) {
-	 	$encoded = PDFJ::Util::deflate($src) or return;
-		@filters = qw(FlateDecode);
-	} elsif( $self->filter =~ /a/ ) {
-	 	$encoded = PDFJ::Util::ascii85encode($src) or return;
-		@filters = qw(ASCII85Decode);
-	} else {
-		return;
-	}
-	push @filters, @addfilters if @addfilters;
-	my $filter = @filters > 1 ? [map {name($_)} @filters] : name($filters[0]);
-	($encoded, $filter);
+	PDFJ::Util::makestream($self->filter, $src, @addfilters);
 }
 
 sub _nextsubsettag {
@@ -1197,28 +1870,41 @@ sub _nextfontnum {
 
 sub _registfont {
 	my($self, $fontobj) = @_;
-	my $baseorttf = $fontobj->{ttffile} || $fontobj->{basefont};
+	my $baseorttf = 
+		$fontobj->{ttffile} || $fontobj->{otffile} || $fontobj->{basefont};
 	my $encoding = $fontobj->{encoding};
 	my $name = $fontobj->{name} || $fontobj->{zname};
 	my $font = $fontobj->{font} || $fontobj->{zfont};
 	$self->{fontname}{$baseorttf, $encoding} = $name;
 	$self->{fontlist}{$name} = $font;
 	if( $fontobj->{combo} ) {
-		$self->{fontobjlist}{$name, $fontobj->{hname}} = $fontobj;
+		$self->{fontobjlist}{$name, $fontobj->{hname}, $fontobj->{hsize}} = 
+			$fontobj;
 	} else {
 		$self->{fontobjlist}{$name} = $fontobj;
 	}
 }
 
-sub _registsubset {
+sub _registsubset_ttf {
 	my($self, %args) = @_;
 	$args{subset_unicodes} = {};
 	$self->{subsetttf}{$args{name}} = \%args;
 }
 
+sub _registsubset_otf {
+	my($self, %args) = @_;
+	$args{subset_unicodes} = {};
+	$self->{subsetotf}{$args{name}} = \%args;
+}
+
 sub _subsetttf {
 	my($self, $name) = @_;
 	$self->{subsetttf}{$name};
+}
+
+sub _subsetotf {
+	my($self, $name) = @_;
+	$self->{subsetotf}{$name};
 }
 
 sub _fontname {
@@ -1232,31 +1918,39 @@ sub _font {
 }
 
 sub _fontobj {
-	my($self, $name, $hname) = @_;
+	my($self, $name, $hname, $hsize) = @_;
+	$hsize ||= 1;
 	$hname ? 
-		$self->{fontobjlist}{$name, $hname} :
+		$self->{fontobjlist}{$name, $hname, $hsize} :
 		$self->{fontobjlist}{$name};
 }
 
 sub _jcidsysteminfo {
 	my $self = shift;
-	unless( $self->{jcidsysteminfo} ) {
-		$self->{jcidsysteminfo} = $self->indirect(dictionary({
-			Registry => 'Adobe',
-			Ordering => 'Japan1',
-			Supplement => 2,
-		}));
-	}
-	$self->{jcidsysteminfo};
+	$self->_cidsysteminfo('j');
 }
 
-sub _jfontdescriptor {
-	my($self, $basefont) = @_;
-	unless( $self->{jfontdescriptor}->{$basefont} ) {
-		$self->{jfontdescriptor}->{$basefont} = 
-			$self->indirect($PDFJ::Default{JFD}{$basefont});
+sub _cidsysteminfo {
+	my($self, $ename) = @_;
+	my $name = $ename . 'cidsysteminfo';
+	unless( $self->{$name} ) {
+		my($r, $o, $s) = split /-/, $PDFJ::Default{CIDSystemInfo}{$ename};
+		$self->{$name} = $self->indirect(dictionary({
+			Registry => $r,
+			Ordering => $o,
+			Supplement => $s,
+		}));
 	}
-	$self->{jfontdescriptor}->{$basefont};
+	$self->{$name};
+}
+
+sub _fontdescriptor {
+	my($self, $basefont) = @_;
+	unless( $self->{fontdescriptor}->{$basefont} ) {
+		$self->{fontdescriptor}->{$basefont} = 
+			$self->indirect(dictionary($PDFJ::Default{FD}{$basefont}));
+	}
+	$self->{fontdescriptor}->{$basefont};
 }
 
 sub _nextimagenum {
@@ -1269,6 +1963,26 @@ sub _registimage {
 	$self->{imagelist}->{$name} = $image;
 }
 
+sub new_minipage {
+	my($self, $width, $height, $padding, $opacity) 
+		= PDFJ::Util::methodargs([qw(width height padding opacity)], @_);
+	PDFJ::MiniPage->new($self, $width, $height, $padding, $opacity);
+}
+
+sub _nextxobjnum {
+	my $self = shift;
+	if( $self->{xobjlist} ) {
+		1 + scalar keys %{$self->{xobjlist}};
+	} else {
+		1;
+	}
+}
+
+sub _registxobj {
+	my($self, $name, $xobj) = @_;
+	$self->{xobjlist}->{$name} = $xobj;
+}
+
 #--------------------------------------------------------------------------
 package PDFJ::Font;
 use strict;
@@ -1277,7 +1991,7 @@ use strict;
 package PDFJ::AFont;
 use strict;
 use Carp;
-use SelfLoader;
+#use SelfLoader;
 use PDFJ::Object;
 use vars qw(@ISA);
 @ISA = qw(PDFJ::Font);
@@ -1294,9 +2008,11 @@ sub new_std {
 		Name => name($name),
 		BaseFont => name($basefont),
 		Subtype => name('Type1'),
-		Encoding => name($encoding),
+		Encoding => $docobj->cmap($encoding),
 	}));
-	my $width = fontwidth($basefont);
+	require PDFJ::Type1;
+	#my $width = fontwidth($basefont);
+	my $width = PDFJ::Type1::fontwidth($basefont, $encoding);
 	my $self = bless {docobj => $docobj, basefont => $basefont, 
 		encoding => $encoding, font => $font, name => $name, width => $width,
 		direction => 'H'}, $class;
@@ -1351,10 +2067,69 @@ sub new_ttf {
 	$self;
 }
 
+sub new_otf {
+	my($class, $docobj, $otffile, $encoding) = @_;
+	croak "OpenType embedding requires PDF version 1.6 or above"
+		if $docobj->{version} < 1.6;
+	my $name = $docobj->_fontname($otffile, $encoding);
+	return $docobj->_fontobj($name) if $name;
+	$name = "F".$docobj->_nextfontnum;
+	my $otf = PDFJ::Util::otfopen($otffile);
+	my $info = $otf->pdf_info_ascii($encoding);
+	croak "'$otffile' embedding inhibited"
+		if $info->{EmbedFlag} == 2 || $info->{EmbedFlag} & 0x200;
+	my $size = -s $otffile;
+	my($encoded, $filter) = $docobj->_makestream($otffile);
+	my $basefont = $info->{BaseFont};
+	my @widths = @{$info->{Widths}};
+	my $font = $docobj->indirect(dictionary({
+		Type => name('Font'),
+		Name => name($name),
+		BaseFont => name($basefont),
+		Subtype => name('TrueType'), # OK?
+		Encoding => name($info->{Encoding}),
+		FirstChar => $info->{FirstChar},
+		LastChar => $info->{LastChar},
+		Widths => $docobj->indirect(array(\@widths)),
+		FontDescriptor => $docobj->indirect(dictionary({
+			Type => name('FontDescriptor'),
+			Ascent => $info->{Ascent},
+			CapHeight => $info->{CapHeight},
+			Descent => $info->{Descent},
+			Flags => $info->{Flags},
+			FontBBox => $info->{FontBBox},
+			FontName => name($info->{FontName}),
+			ItalicAngle => $info->{ItalicAngle},
+			StemV => 0, # OK?
+			FontFile3 => $docobj->indirect(stream(dictionary => {
+				Subtype => name('OpenType'),
+				Filter  => $filter,
+				Length  => length($encoded),
+				Length1 => $size,
+			}, stream => $encoded)),
+		})),
+	}));
+	my $self = bless {docobj => $docobj, # basefont => $basefont, 
+		encoding => $encoding, otffile => $otffile,
+		font => $font, name => $name, width => $info->{Widths}, 
+		direction => 'H'}, $class;
+	$docobj->_registfont($self);
+	$self;
+}
+
+sub fname {
+	my($self) = @_;
+	$self->{name};
+}
+
 sub selectname {
 	my($self, $style) = @_;
-	my $docobj = $self->{docobj};
-	$docobj->_bolditalicname($self->{name}, $style);
+	$self->{docobj}->_bolditalicname($self->fname, $style);
+}
+
+sub selectfont {
+	my($self, $style) = @_;
+	$self->{docobj}->_bolditalicfont($self, $style);
 }
 
 sub hash {
@@ -1376,21 +2151,8 @@ sub astring_fontwidth {
 	&string_fontwidth;
 }
 
-# NOT method
-my %FontWidth;
-sub fontwidth {
-	my($basefont) = @_;
-	$basefont =~ s/-/_/g;
-	return $FontWidth{$basefont} if $FontWidth{$basefont};
-	my $func = "fontwidth_$basefont";
-	my $result = eval { no strict 'refs'; &$func(); };
-	croak $@ if $@;
-	$FontWidth{$basefont} = $result if $result;
-	$result;
-}
-
 #--------------------------------------------------------------------------
-package PDFJ::JFont;
+package PDFJ::CIDFont;
 use strict;
 use Carp;
 use PDFJ::Object;
@@ -1398,15 +2160,15 @@ use vars qw(@ISA);
 @ISA = qw(PDFJ::Font);
 
 sub new_std {
-	my($class, $docobj, $basefont, $encoding, $hfontobj) = @_;
-	croak "illegal japanese font name: $basefont"
-		unless $PDFJ::Default{Fonts}{$basefont} eq 'j';
+	my($class, $docobj, $basefont, $encoding, $hfontobj, $hsize) = @_;
+	croak "illegal CID font name: $basefont"
+		if $PDFJ::Default{Fonts}{$basefont} eq 'a';
 	croak "ascii font type mismatch"
-		if $hfontobj && !UNIVERSAL::isa($hfontobj, "PDFJ::AFont");
+		if $hfontobj && !PDFJ::Util::objisa($hfontobj, "PDFJ::AFont");
 	my $name = $docobj->_fontname($basefont, $encoding);
 	my $hname = $hfontobj ? $hfontobj->{name} : undef;
-	return $docobj->_fontobj($name, $hname) 
-		if $name && $docobj->_fontobj($name, $hname);
+	return $docobj->_fontobj($name, $hname, $hsize) 
+		if $name && $docobj->_fontobj($name, $hname, $hsize);
 	# Zenkaku font
 	my $code = $PDFJ::Default{Jcode};
 	my($direction) = $encoding =~ /-(\w+)$/;
@@ -1415,23 +2177,26 @@ sub new_std {
 		$zname = $name;
 		$zfont = $docobj->_font($name);
 	} else {
-		my $jcidsi = $docobj->_jcidsysteminfo;
-		my $jfd = $docobj->_jfontdescriptor($basefont);
+		my $ename = substr($PDFJ::Default{Encodings}{$encoding}, 0, 1);
+		my $cidsi = $docobj->_cidsysteminfo($ename);
+		my $fd = $docobj->_fontdescriptor($basefont);
+		my $w = $ename eq 'j' ? [231, 389, 500, 631, [500]] : [];
 		$zname = "F".$docobj->_nextfontnum;
 		$zfont = $docobj->indirect(dictionary({
 			Name => name($zname),
 			Type => name("Font"),
 			Subtype => name('Type0'),
-			Encoding => name($encoding),
+			Encoding => $docobj->cmap($encoding),
 			BaseFont => name("$basefont-$encoding"),
 			DescendantFonts => [{
 				Type => name('Font'),
 				Subtype => name('CIDFontType0'),
 				BaseFont => name($basefont),
-				CIDSystemInfo => $jcidsi,
+				CIDSystemInfo => $cidsi,
 				DW => 1000,
-				W => [231, 389, 500, 631, [500]],
-				FontDescriptor => $jfd,
+				# W => [231, 389, 500, 631, [500]],
+				W => $w,
+				FontDescriptor => $fd,
 			}],
 		}));
 	}
@@ -1439,10 +2204,12 @@ sub new_std {
 	my($combo, $hfont);
 	if( $hfontobj ) {
 		$combo = 1;
+		$hsize ||= 1;
 		$hname = $hfontobj->{name};
 		$hfont = $hfontobj->{font};
 	} else {
 		$combo = 0;
+		$hsize = 0;
 		$hname = $zname;
 		$hfont = $zfont;
 	}
@@ -1457,6 +2224,7 @@ sub new_std {
 		direction => $direction,
 		code => $code,
 		combo => $combo,
+		hsize => $hsize,
 		hfontobj => $hfontobj,
 	}, $class;
 	$docobj->_registfont($self);
@@ -1464,15 +2232,15 @@ sub new_std {
 }
 
 sub new_ttf {
-	my($class, $docobj, $ttffile, $encoding, $hfontobj) = @_;
+	my($class, $docobj, $ttffile, $encoding, $hfontobj, $hsize) = @_;
 	croak "TrueType subset embedding requires PDF version 1.3 or above"
 		if $docobj->{version} < 1.3;
 	croak "ascii font type mismatch"
-		if $hfontobj && !UNIVERSAL::isa($hfontobj, "PDFJ::AFont");
+		if $hfontobj && !PDFJ::Util::objisa($hfontobj, "PDFJ::AFont");
 	my $name = $docobj->_fontname($ttffile, $encoding);
 	my $hname = $hfontobj ? $hfontobj->{name} : undef;
-	return $docobj->_fontobj($name, $hname) 
-		if $name && $docobj->_fontobj($name, $hname);
+	return $docobj->_fontobj($name, $hname, $hsize) 
+		if $name && $docobj->_fontobj($name, $hname, $hsize);
 	# Zenkaku font
 	my $code = $PDFJ::Default{Jcode};
 	my($direction) = $encoding =~ /-(\w+)$/;
@@ -1482,27 +2250,30 @@ sub new_ttf {
 		$zfont = $docobj->_font($name);
 	} else {
 		my $ttf = PDFJ::Util::ttfopen($ttffile);
-		my $info = $ttf->pdf_info_japan($encoding);
+		my $info = $ttf->pdf_info_cid($encoding);
 		croak "'$ttffile' embedding inhibited ($info->{EmbedFlag})"
 			if $info->{EmbedFlag} == 2 || $info->{EmbedFlag} & 0x100 ||
 				$info->{EmbedFlag} & 0x200;
 		my $subsetname = $docobj->_nextsubsettag . '+' . $info->{BaseFont};
 		my $basefont = $info->{BaseFont};
-		my $jcidsi = $docobj->_jcidsysteminfo;
+		my $ename = substr($PDFJ::Default{Encodings}{$encoding}, 0, 1);
+		my $cidsi = $docobj->_cidsysteminfo($ename);
+		my $w = $ename eq 'j' ? [231, 389, 500, 631, [500]] : [];
 		$zname = "F".$docobj->_nextfontnum;
 		$zfont = $docobj->indirect(dictionary({
 			Name => name($zname),
 			Type => name("Font"),
 			Subtype => name('Type0'),
-			Encoding => name($encoding),
+			Encoding => $docobj->cmap($encoding),
 			BaseFont => name($subsetname),
 			DescendantFonts => [$docobj->indirect(dictionary({
 				Type => name('Font'),
 				Subtype => name('CIDFontType2'), # TrueType
 				BaseFont => name($basefont),
-				CIDSystemInfo => $jcidsi,
+				CIDSystemInfo => $cidsi,
 				DW => 1000,
-				W => [231, 389, 500, 631, [500]],
+				# W => [231, 389, 500, 631, [500]],
+				W => $w,
 				FontDescriptor => $docobj->indirect(dictionary({
 					Type => name('FontDescriptor'),
 					Ascent => $info->{Ascent},
@@ -1518,18 +2289,21 @@ sub new_ttf {
 				# CIDToGIDMap added later
 			}))],
 		}));
-		$docobj->_registsubset(
-			name => $zname, ttf => $ttf, direction => $direction);
+		$docobj->_registsubset_ttf(
+			name => $zname, ttf => $ttf, encoding => $encoding, 
+			direction => $direction);
 	}
 	my $subset_unicodes = $docobj->_subsetttf($zname)->{subset_unicodes};
 	# Hankaku font
 	my($combo, $hfont);
 	if( $hfontobj ) {
 		$combo = 1;
+		$hsize ||= 1;
 		$hname = $hfontobj->{name};
 		$hfont = $hfontobj->{font};
 	} else {
 		$combo = 0;
+		$hsize = 0;
 		$hname = $zname;
 		$hfont = $zfont;
 	}
@@ -1545,6 +2319,7 @@ sub new_ttf {
 		direction => $direction,
 		code => $code,
 		combo => $combo,
+		hsize => $hsize,
 		hfontobj => $hfontobj,
 		subset_unicodes => $subset_unicodes,
 	}, $class;
@@ -1552,15 +2327,118 @@ sub new_ttf {
 	$self;
 }
 
-sub selectname { 
-	my($self, $style, $mode) = @_;
-	my $docobj = $self->{docobj};
-	if( $self->{combo} ) {
-		split $;, $docobj->_bolditalicname(
-			join($;, $self->{zname}, $self->{hname}), $style);
+use Data::Dumper;
+
+sub new_otf {
+	my($class, $docobj, $otffile, $encoding, $hfontobj, $hsize) = @_;
+	croak "OpenType embedding requires PDF version 1.6 or above"
+		if $docobj->{version} < 1.6;
+	croak "ascii font type mismatch"
+		if $hfontobj && !PDFJ::Util::objisa($hfontobj, "PDFJ::AFont");
+	my $name = $docobj->_fontname($otffile, $encoding);
+	my $hname = $hfontobj ? $hfontobj->{name} : undef;
+	return $docobj->_fontobj($name, $hname, $hsize) 
+		if $name && $docobj->_fontobj($name, $hname, $hsize);
+	# Zenkaku font
+	my $code = $PDFJ::Default{Jcode};
+	my($direction) = $encoding =~ /-(\w+)$/;
+	my($zname, $zfont);
+	if( $name ) {
+		$zname = $name;
+		$zfont = $docobj->_font($name);
 	} else {
-		$docobj->_bolditalicname($self->{zname}, $style);
+		my $otf = PDFJ::Util::otfopen($otffile);
+		my $info = $otf->pdf_info_cid($encoding);
+		croak "'$otffile' embedding inhibited ($info->{EmbedFlag})"
+			if $info->{EmbedFlag} == 2 || $info->{EmbedFlag} & 0x100 ||
+				$info->{EmbedFlag} & 0x200;
+		my $subsetname = $docobj->_nextsubsettag . '+' . $info->{BaseFont};
+		my $basefont = $info->{BaseFont};
+		my $ename = substr($PDFJ::Default{Encodings}{$encoding}, 0, 1);
+		my $cidsi = $docobj->_cidsysteminfo($ename);
+		my $w = $ename eq 'j' ? [231, 389, 500, 631, [500]] : [];
+		$zname = "F".$docobj->_nextfontnum;
+		$zfont = $docobj->indirect(dictionary({
+			Name => name($zname),
+			Type => name("Font"),
+			Subtype => name('Type0'),
+			Encoding => $docobj->cmap($encoding),
+			BaseFont => name($subsetname),
+			DescendantFonts => [$docobj->indirect(dictionary({
+				Type => name('Font'),
+				Subtype => name('CIDFontType0'), # OpenType
+				BaseFont => name($basefont),
+				CIDSystemInfo => $cidsi,
+				DW => 1000,
+				# W => [231, 389, 500, 631, [500]],
+				W => $w,
+				FontDescriptor => $docobj->indirect(dictionary({
+					Type => name('FontDescriptor'),
+					Ascent => $info->{Ascent},
+					CapHeight => $info->{CapHeight},
+					Descent => $info->{Descent},
+					Flags => $info->{Flags},
+					FontBBox => $info->{FontBBox},
+					FontName => name($subsetname),
+					ItalicAngle => $info->{ItalicAngle},
+					StemV => 0, # OK?
+					# FontFile3 added later
+				})),
+			}))],
+		}));
+		$docobj->_registsubset_otf(
+			name => $zname, otf => $otf, encoding => $encoding, 
+			direction => $direction);
 	}
+	my $subset_unicodes = $docobj->_subsetotf($zname)->{subset_unicodes};
+	# Hankaku font
+	my($combo, $hfont);
+	if( $hfontobj ) {
+		$combo = 1;
+		$hsize ||= 1;
+		$hname = $hfontobj->{name};
+		$hfont = $hfontobj->{font};
+	} else {
+		$combo = 0;
+		$hsize = 0;
+		$hname = $zname;
+		$hfont = $zfont;
+	}
+	my $self = bless {
+		docobj => $docobj, 
+		#basefont => $basefont, 
+		encoding => $encoding, 
+		otffile => $otffile,
+		zfont => $zfont, 
+		hfont => $hfont, 
+		zname => $zname, 
+		hname => $hname,
+		direction => $direction,
+		code => $code,
+		combo => $combo,
+		hsize => $hsize,
+		hfontobj => $hfontobj,
+		subset_unicodes => $subset_unicodes,
+	}, $class;
+	$docobj->_registfont($self);
+	$self;
+}
+
+sub fname {
+	my($self) = @_;
+	$self->{combo} ? join($;, $self->{zname}, $self->{hname}, $self->{hsize}) :
+		$self->{zname};
+}
+
+sub selectname { 
+	my($self, $style) = @_;
+	my $docobj = $self->{docobj};
+	split $;, $docobj->_bolditalicname($self->fname, $style);
+}
+
+sub selectfont {
+	my($self, $style) = @_;
+	$self->{docobj}->_bolditalicfont($self, $style);
 }
 
 sub hash {
@@ -1573,7 +2451,7 @@ sub astring_fontwidth {
 	my $combo = $self->{combo};
 	my $hfont = $self->{hfontobj};
 	if( $combo ) {
-		$hfont->string_fontwidth($string);
+		$self->{hsize} * $hfont->string_fontwidth($string);
 	} else {
 		length($string) / 2;
 	}
@@ -1590,31 +2468,37 @@ sub postskip { 0 }
 sub postnobreak { 0 }
 sub breakable { 0 }
 sub float { "" }
+sub colspan { 1 }
+sub rowspan { 1 }
+sub blockalign { "" }
 
 #--------------------------------------------------------------------------
 package PDFJ::Showable;
 use Carp;
 use strict;
+use PDFJ::Object;
 use vars qw(@ISA);
 @ISA = qw(PDFJ::BlockElement);
 
+sub typename {
+	my($self, $name) = @_;
+	if( defined $name ) {
+		$self->{typename} = $name;
+	} else {
+		$self->{typename};
+	}
+}
+
 sub show {
-	my($self, $page, $x, $y, $align, $transtype, @args) = @_;
+	my($self, $page, $x, $y, $align, $transtype, @args)
+		= PDFJ::Util::methodargs([qw(page x y align transtype transargs)], @_);
+	if( ref($args[0]) eq 'ARRAY' ) {
+		@args = @{$args[0]};
+	}
 	if( $transtype ) {
-		if( $transtype eq 'magnify' ) {
-			my($xmag, $ymag) = @args;
-			$page->addcontents("q $xmag 0 0 $ymag $x $y cm");
-		} elsif( $transtype eq 'rotate' ) {
-			my($rad) = @args;
-			my $sin = sin($rad);
-			my $cos = cos($rad);
-			my $msin = -$sin;
-			$page->addcontents("q $cos $sin $msin $cos $x $y cm");
-		} elsif( $transtype eq 'distort' ) {
-			my($xtan, $ytan) = @args;
-			$page->addcontents("q 1 $xtan $ytan 1 $x $y cm");
-		} else {
-			croak "unknown transformation type";
+		my @matrix = PDFJ::Util::transmatrix($x, $y, $transtype, @args);
+		if( @matrix ) {
+			$page->addcontents("q", numbers(@matrix), "cm");
 		}
 		($x, $y) = (0, 0);
 	}
@@ -1638,6 +2522,11 @@ sub show {
 	if( $transtype ) {
 		$page->addcontents("Q");
 	}
+	my $onshow = $self->onshow;
+	if( ref($onshow) eq 'CODE' ) {
+		&$onshow;
+	}
+	return;
 }
 
 #--------------------------------------------------------------------------
@@ -1651,34 +2540,82 @@ sub new {
 		$class = ref($class);
 	}
 	my $self;
-	if( @args == 1 && ref($args[0]) eq 'HASH' ) {
-		%$self = %{$args[0]};
+	if( @args == 1 ) {
+		if( $args[0] && !ref($args[0]) ) {
+			$self = PDFJ::Util::strstyle2hashref($args[0]);
+		} elsif( $args[0] && 
+			(ref($args[0]) eq 'HASH' || ref($args[0]) eq $class) ) {
+			%$self = %{$args[0]};
+		} else {
+			croak "illegal $class->new() argument";
+		}
 	} else {
 		%$self = @args;
+	}
+	if( keys %$self == 1 && $self->{style} ) {
+		$self = $class->new($self->{style});
+	}
+	for my $key(keys %$self) {
+		if( $key =~ /(style|color)$/ && 
+			(!ref($self->{$key}) || ref($self->{$key}) eq 'HASH') ) {
+			$self->{$key} = 
+				$key =~ /color$/ ? PDFJ::Color->new($self->{$key}) :
+				$key eq 'withnotestyle' ? PDFJ::TextStyle->new($self->{$key}) :
+				$key =~ /style$/ ? PDFJ::ShapeStyle->new($self->{$key}) :
+				$self->{$key};
+		}
 	}
 	bless $self, $class;
 }
 
 sub clone {
-	my($self, @args) = @_;
-	my $clone = $self->new(%$self);
+	my $self = shift;
+	$self->_clone(0, @_);
+}
+sub linkedclone {
+	my $self = shift;
+	$self->_clone(1, @_);
+}
+sub _clone {
+	my($self, $linked, @args) = @_;
+	my $clone;
 	if( @args ) {
 		my %args;
-		if( @args == 1 && ref($args[0]) eq 'HASH' ) {
-			%args = %{$args[0]};
+		if( @args == 1 ) {
+			if( !ref($args[0]) ) {
+				%args = %{PDFJ::Util::strstyle2hashref($args[0])};
+			} elsif( ref($args[0]) eq 'HASH' || ref($args[0]) eq ref($self) ) {
+				%args = %{$args[0]};
+			} else {
+				croak "illegal clone() argument";
+			}
 		} else {
 			%args = @args;
+		}
+		if( $args{style} ) {
+			$clone = $self->clone($args{style});
+			delete $args{style};
+		} else {
+			$clone = $self->new(%$self);
 		}
 		for my $key(keys %args) {
 			$clone->{$key} = $args{$key};
 		}
+	} else {
+		$clone = $self->new(%$self);
+	}
+	delete $clone->{_clone};
+	if( $linked ) {
+		push @{$self->{_clone}}, $clone;
 	}
 	$clone;
 }
 
 sub merge {
-	my($self, $from) = @_;
+	my($self, $from, @nomerge) = @_;
 	for my $key(keys %$from) {
+		next if $key eq '_clone';
+		next if grep {$_ eq $key} @nomerge;
 		$self->{$key} = $from->{$key} unless exists $self->{$key};
 	}
 	$self;
@@ -1705,19 +2642,32 @@ sub merge {
 				$PDFJ::Default{LSuffixRise} : 
 			0;
 	}
-	$self->SUPER::merge($from);
+	$self->SUPER::merge($from, 'ruby');
+	if( $self->{_clone} ) {
+		for my $cstyle(@{$self->{_clone}}) {
+			$cstyle->merge($self);
+		}
+	}
+	$self;
 }
 
 sub selectfontname {
-	my($self, $mode) = @_;
-	my $font = $self->{font} or return;
-	$font->selectname($self, $mode);
+	my($self) = @_;
+	return unless $self->{font};
+	$self->{font}->selectname($self);
+}
+
+sub selectfont {
+	my($self) = @_;
+	return unless $self->{font};
+	$self->{font}->selectfont($self);
 }
 
 #--------------------------------------------------------------------------
 package PDFJ::TextSpec;
-use strict;
 use Carp;
+use strict;
+use PDFJ::Object;
 
 sub new {
 	my($class, @args) = @_;
@@ -1736,14 +2686,17 @@ sub print {
 }
 
 sub set {
-	my($self, $style, $fontname) = @_;
+	my($self, $style, $fontname, $sizeratio) = @_;
 	%$self = ();
-	for my $key(qw(fontsize render rise shapestyle)) {
+	for my $key(qw(fontsize render rise shapestyle contentmark)) {
 		if( exists $style->{$key} ) {
 			$self->{$key} = $style->{$key};
 		}
 	}
 	$self->{fontname} = $fontname;
+	if( $self->{fontsize} && $sizeratio ) {
+		$self->{fontsize} *= $sizeratio;
+	}
 }
 
 sub copy {
@@ -1753,7 +2706,7 @@ sub copy {
 
 sub equal {
 	my($self, $other) = @_;
-	for my $key(qw(fontname fontsize render rise shapestyle)) {
+	for my $key(qw(fontname fontsize render rise shapestyle contentmark)) {
 		return 0 if ($self->{$key} || "") ne ($other->{$key} || "");
 	}
 	return 1;
@@ -1766,11 +2719,17 @@ sub pdf {
 	my $fontsize = $self->{fontsize};
 	my $rise = $self->{rise} || 0;
 	my $render = $self->{render} || 0;
-	my $shapepdf = $self->{shapestyle} ? $self->{shapestyle}->pdf : "";
-	my $pdf = "q ";
-	$pdf .= "$shapepdf " if $shapepdf;
-	$pdf .= "BT /$fontname $fontsize Tf $rise Ts $render Tr ";
-	$pdf;
+	my @shapepdf = $self->{shapestyle} ? $self->{shapestyle}->pdf : ();
+	my $contentmark = $self->{contentmark};
+	my @pdf = $contentmark ne '' ? ("/$contentmark BMC q") : ("q");
+	push @pdf, @shapepdf if @shapepdf;
+	push @pdf, "BT /$fontname", number($fontsize), "Tf", number($rise), "Ts $render Tr";
+	@pdf;
+}
+
+sub endpdf {
+	my($self) = @_;
+	$self->{contentmark} ne '' ? "] TJ ET Q EMC " : "] TJ ET Q ";
 }
 
 #--------------------------------------------------------------------------
@@ -1781,9 +2740,12 @@ use strict;
 sub NewLine { PDFJ::NewLine->new(@_) }
 
 sub new { 
-	my($class) = @_;
-	bless \$class, $class;
+	my($class, $level) = PDFJ::Util::methodargs([qw(level)], @_);
+	$level ||= 0;
+	bless \$level, $class;
 }
+
+sub level { ${$_[0]} }
 
 #--------------------------------------------------------------------------
 package PDFJ::Outline;
@@ -1793,7 +2755,8 @@ use strict;
 sub Outline { PDFJ::Outline->new(@_) }
 
 sub new { 
-	my($class, $title, $level) = @_;
+	my($class, $title, $level)
+		= PDFJ::Util::methodargs([qw(title level)], @_);
 	bless {outlinetitle => $title, outlinelevel => $level}, $class;
 }
 
@@ -1805,48 +2768,121 @@ use strict;
 sub Dest { PDFJ::Dest->new(@_) }
 
 sub new { 
-	my($class, $name) = @_;
+	my($class, $name)
+		= PDFJ::Util::methodargs([qw(name)], @_);
 	bless {destname => $name}, $class;
+}
+
+#--------------------------------------------------------------------------
+package PDFJ::Null;
+use Carp;
+use strict;
+
+sub Null { PDFJ::Null->new(@_) }
+
+sub new { 
+	my($class, @args) = @_;
+	my %args;
+	if( @args > 1 ) {
+		%args = @args;
+	} elsif( @args == 1 && ref($args[0]) eq 'HASH' ) {
+		%args = %{$args[0]};
+	}
+	bless \%args, $class;
+}
+
+#--------------------------------------------------------------------------
+package PDFJ::Space;
+use Carp;
+use strict;
+use vars qw(@ISA);
+@ISA = qw(PDFJ::Showable);
+
+sub Space { PDFJ::Space->new(@_) }
+
+# $glue : "min,normal,max,pref" unit is fontsize
+sub new { 
+	my($class, $size, $glue, $style) = 
+		PDFJ::Util::methodargs([qw(size glue style)], @_);
+	$size ||= 0;
+	if( defined $glue ) {
+		my($gmin, $gnormal, $gmax, $gpref) = 
+			ref($glue) eq 'ARRAY' ? @$glue : split(/\s*,\s*/, $glue);
+		my($gluedec, $glueinc) = (($gnormal - $gmin), ($gmax - $gnormal));
+		$glue = [$gnormal, $gluedec, $glueinc, $gpref];
+	}
+	bless {size => $size, glue => $glue, style => $style}, $class;
+}
+
+sub textstyle { $_[0]->{style} }
+
+sub _show {
+	my($self, $page, $x, $y) = @_;
+	my $style = $self->{style};
+	if( $style && ref($style->{pageattr}) eq 'HASH' ) {
+		for my $key(keys %{$style->{pageattr}}) {
+			$page->setattr($key, $style->{pageattr}{$key});
+		}
+	}
+}
+sub onshow {}
+sub size { $_[0]->{size} }
+sub width { $_[0]->{size} }
+sub height { $_[0]->{size} }
+sub left { 0 }
+sub right { $_[0]->{size} }
+sub top { $_[0]->{size} }
+sub bottom { 0 }
+sub glue { 
+	my($self) = @_;
+	my $glue = $self->{glue};
+	if( ref($glue) eq 'ARRAY' ) {
+		@$glue;
+	} else {
+		(0,0,0,0);
+	}
 }
 
 #--------------------------------------------------------------------------
 package PDFJ::Text;
 use Carp;
 use strict;
+use PDFJ::Object;
 use vars qw(@ISA);
 @ISA = qw(PDFJ::Showable);
 
 sub Text { PDFJ::Text->new(@_) }
 
 sub new {
-	my $class = shift;
-	my $style = pop; # not shift
-	if( UNIVERSAL::isa($style, 'PDFJ::TextStyle') ) {
+	my($class, $texts, $style)
+		= PDFJ::Util::listargs2ref(1, 1, 
+			PDFJ::Util::methodargs([qw(texts style)], @_));
+	if( PDFJ::Util::objisa($style, 'PDFJ::TextStyle') ) {
 		$style = $style->clone;
-	} elsif( ref($style) eq 'HASH' ) {
+	} elsif( $style && (!ref($style) || ref($style) eq 'HASH') ) {
 		$style = PDFJ::TextStyle->new($style);
 	} else {
 		croak "style argument must be a PDFJ::TextStyle object or HASHref";
 	}
-	my @texts = @_;
-	my $texts = (@texts == 1 && ref($texts[0]) eq 'ARRAY') ? $texts[0] : \@texts;
 	my $self = bless { texts => $texts, style => $style }, $class;
 	$self->mergestyle;
 	# $self->print;
 	$self->makechunks;
-	$self->makerubytext;
 	$self;
 }
 
 sub mergestyle {
-	my($self) = @_;
+	my($self, $indent) = @_;
 	my $style = $self->style;
 	return unless $style->{font};
 	for my $text(@{$self->texts}) {
-		if( UNIVERSAL::isa($text, 'PDFJ::Text') ) {
+		if( PDFJ::Util::objisa($text, 'PDFJ::Text') ) {
 			$text->style->merge($style);
-			$text->mergestyle;
+			$text->mergestyle("$indent  ");
 		}
+	}
+	for my $cstyle(@{$style->{_clone}}) {
+		$cstyle->merge($style);
 	}
 }
 
@@ -1856,7 +2892,7 @@ sub print {
 	my $style = $self->style;
 	print $indent,join(',',%$style),"\n";
 	for my $text(@{$self->texts}) {
-		if( UNIVERSAL::isa($text, 'PDFJ::Text') ) {
+		if( PDFJ::Util::objisa($text, 'PDFJ::Text') ) {
 			$text->print("$indent  ");
 		} else {
 			print "$indent\[$text]\n";
@@ -1868,67 +2904,70 @@ sub makechunks {
 	my($self) = @_;
 	my $style = $self->style;
 	return unless $style->{font};
+	my $noshift = $style->{noshift};
 	$self->{chunks} = [];
 	$self->{lines} = [];
 	for my $text(@{$self->texts}) {
-		if( UNIVERSAL::isa($text, 'PDFJ::Text') ) {
+		if( !ref($text) ) {
+			$self->catchunks($self->splittext($text, $noshift));
+		} elsif( PDFJ::Util::objisa($text, 'PDFJ::Text') ) {
 			$text->makechunks unless $text->chunks;
-			$self->catchunks($text->chunks);
-		} elsif( UNIVERSAL::isa($text, 'PDFJ::Showable') ) {
-			$self->catchunks([_objchunk($text, $self->style)]);
-#		} elsif( UNIVERSAL::isa($text, 'PDFJ::Image') ) {
-#			$self->catchunks([_imagechunk($text, $self->style)]);
-#		} elsif( UNIVERSAL::isa($text, 'PDFJ::Shape') ) {
-#			$self->catchunks([_shapechunk($text, $self->style)]);
-		} elsif( UNIVERSAL::isa($text, 'PDFJ::NewLine') ) {
-			$self->catchunks([_newlinechunk($self->style)]);
-		} elsif( UNIVERSAL::isa($text, 'PDFJ::Outline') ) {
-			$self->catchunks([_outlinechunk($text, $self->style)]);
-		} elsif( UNIVERSAL::isa($text, 'PDFJ::Dest') ) {
-			$self->catchunks([_destchunk($text, $self->style)]);
+			if( exists $text->style->{ruby} ) {
+				my($rubytext, $altobj, $rubyoverlap) =
+					$self->makerubytext($text->style->{ruby}, $text, 
+					$text->style);
+				my $chunk = _rubychunk($altobj, $style, $rubyoverlap);
+				$chunk->{RubyText} = $rubytext;
+				$self->catchunks([$chunk]);
+			} else {
+				$self->catchunks($text->chunks);
+			}
+		} elsif( PDFJ::Util::objisa($text, 'PDFJ::Showable') ) {
+			$self->catchunks([_objchunk($text, $style)]);
+		} elsif( PDFJ::Util::objisa($text, 'PDFJ::NewLine') ) {
+			$self->catchunks([_newlinechunk($style)]);
+		} elsif( PDFJ::Util::objisa($text, 'PDFJ::Outline') ) {
+			$self->catchunks([_outlinechunk($text, $style)]);
+		} elsif( PDFJ::Util::objisa($text, 'PDFJ::Dest') ) {
+			$self->catchunks([_destchunk($text, $style)]);
+		} elsif( PDFJ::Util::objisa($text, 'PDFJ::Null') ) {
+			$self->catchunks([_nullchunk($text, $style)]);
+		} elsif( PDFJ::Util::objisa($text, 'PDFJ::TextChunk') ) {
+			$self->catchunks([$text]);
 		} else {
-			$self->catchunks($self->splittext($text));
+			croak "illegal texts element for Text: $text";
 		}
 	}
 }
 
 sub makerubytext {
-	my($self) = @_;
-	return unless $self->style->{font};
-	for my $chunk(@{$self->chunks}) {
-		my $style = $chunk->{Style};
-		if( $style->{ruby} ) {
-			croak "ruby class mismatch" 
-				unless $chunk->{Class} == 11 || $chunk->{Class} == 17;
-			my $rubystyle = $style->clone;
-			delete $rubystyle->{ruby};
-			delete $rubystyle->{withbox};
-			delete $rubystyle->{withline};
-			$rubystyle->{fontsize} /= 2;
-			my $rubytext = PDFJ::Text->new($style->{ruby}, $rubystyle);
-			my $rubysize = $rubytext->size;
-			my $chunksize = _chunksize($chunk, 1);
-			if( $rubysize < $chunksize ) {
-				my $alt = PDFJ::Paragraph->new($rubytext,
-					PDFJ::ParagraphStyle->new(size => $chunksize, 
-						align => 'ruby', linefeed => 0));
-				$chunk->{RubyText} = $alt;
-			} elsif( $rubysize > $chunksize ) {
-				my $altstyle = $style->clone;
-				delete $altstyle->{ruby};
-				delete $altstyle->{withbox};
-				delete $altstyle->{withline};
-				my $alt = PDFJ::Paragraph->new(
-					PDFJ::Text->new($chunk->{String}, $altstyle),
-					PDFJ::ParagraphStyle->new(size => $rubysize, 
-						align => 'ruby', linefeed => 0));
-				$chunk->{AltObj} = $alt;
-				$chunk->{RubyText} = $rubytext;
-			} else {
-				$chunk->{RubyText} = $rubytext;
-			}
-		}
+	my($self, $ruby, $parent, $style) = @_;
+	my $altparent = $parent;
+	my $rubyoverlap = 0;
+	my $rubystyle = $style->clone;
+	delete $rubystyle->{ruby};
+	delete $rubystyle->{withbox};
+	delete $rubystyle->{withline};
+	$rubystyle->{fontsize} /= 2;
+	my $rubytext = PDFJ::Text->new($style->{ruby}, $rubystyle);
+	my $rubysize = $rubytext->size;
+	my $parentsize = $parent->size;
+	if( $rubysize < $parentsize ) {
+		my $alt = PDFJ::Paragraph->new($rubytext,
+			PDFJ::ParagraphStyle->new(size => $parentsize, 
+				align => 'ruby', linefeed => 0));
+		$rubytext = $alt;
+	} elsif( $rubysize > $parentsize ) {
+		my $alt = PDFJ::Paragraph->new(
+			$parent,
+			PDFJ::ParagraphStyle->new(size => $rubysize, 
+				align => 'ruby', linefeed => 0));
+		$altparent = $alt;
+		$rubyoverlap = $alt->line(0)->{Shift};
+		$rubyoverlap = $rubystyle->{fontsize} 
+			if $rubyoverlap > $rubystyle->{fontsize};
 	}
+	($rubytext, $altparent, $rubyoverlap);
 }
 
 sub texts { $_[0]->{texts} }
@@ -1986,6 +3025,11 @@ sub size {
 	_chunkssize($self->{chunks});
 }
 
+sub blockalign {  
+	my($self) = @_;
+	$self->{style}{blockalign};
+}
+
 sub fixsize {
 	my($self, $start, $count, $fixedglues) = @_;
 	_chunksfixsize($self->{chunks}, $start, $count, $fixedglues);
@@ -2014,32 +3058,33 @@ sub dehyphen {
 	$self->{hyphened} = 0;
 }
 
-my %TextLineIndex = (
-	Start => 1,
-	Count => 2,
-	Shift => 3,
-	FixedGlues => 4,
-);
-
 sub _fold {
-	my($self, $linesize, $align) = @_;
+	my($self, $paraobj) = @_;
 	my $chunks = $self->chunks;
-	return unless @$chunks;
+	return unless $chunks && @$chunks;
 	$self->dehyphen;
 	my @lines;
-	my @linesizes = ref($linesize) eq 'ARRAY' ? @$linesize : ($linesize);
-	my $lastlinesize = $linesizes[$#linesizes];
-	my $rubyshift;
-	if( $align eq 'ruby' ) {
-		$rubyshift = ($linesizes[0] - _chunkssize($chunks)) / $self->count;
-		$linesizes[0] -= $rubyshift;
+	my $rubyshift = 0;
+	if( $paraobj->align(0) eq 'ruby' ) {
+		$rubyshift = ($paraobj->linesize(0) - _chunkssize($chunks)) / 
+			#$self->count;
+			@$chunks;
 		$rubyshift /= 2;
-		$align = 'W';
+		$paraobj->align(0, 'W');
 	}
+	my $lineskipmin = $paraobj->{lineskipmin};
+	my $lineskip = $paraobj->{lineskip};
+	my $lastpostaols = 0;
 	my $start = 0;
+	my $lines = 0;
 	while( $start < @$chunks ) {
-		$linesize = @linesizes ? shift(@linesizes) : $lastlinesize;
+		$lines = @lines;
+		my $linesize = $paraobj->linesize($lines);
 		croak "not enough paragraph size" if $linesize < 0;
+		if( $lines == 0 ) {
+			$linesize -= $rubyshift * 2;
+		}
+		my $align = $paraobj->align($lines);
 		my $size = 0;
 		my $decsize = 0;
 		my $foldpos = $start;
@@ -2047,6 +3092,20 @@ sub _fold {
 		my $forced;
 		for( my $j = $start; $j < @$chunks; $j++ ) {
 			my $chunk = $chunks->[$j];
+			if( $chunk->{Style} ) {
+				if( exists $chunk->{Style}{align} ) {
+					$paraobj->align($lines, $chunk->{Style}{align});
+					$align = $paraobj->align($lines);
+				}
+				if( exists $chunk->{Style}{beginindent} ) {
+					$paraobj->beginindent($lines + 1, 
+						$chunk->{Style}{beginindent});
+				}
+				if( exists $chunk->{Style}{endindent} ) {
+					$paraobj->endindent($lines, $chunk->{Style}{endindent});
+					$linesize = $paraobj->linesize($lines);
+				}
+			}
 			if( $chunk->{Splittable} == 2 ) {
 				$foldpos = $j + 1;
 				$forced = 1;
@@ -2075,13 +3134,20 @@ sub _fold {
 						$foldpos = $k;
 					} elsif( $k == $start + 1 ) {
 						$foldpos = $k;
+					} elsif( $canpos == $start ) {
+						if( $k < @$chunks && $chunks->[$k]{Splittable} == 2 ) {
+							$foldpos = $k + 1;
+							$forced = 1;
+						} else {
+							$foldpos = $k;
+						}
 					} else {
 						$foldpos = $canpos;
 					}
 					last;
 				}
 			}
-#print "$j:$start:($chunk->{Splittable})[$chunk->{String}] $chunksize(-$decchunksize) $size(-$decsize) $canpos\n";
+#print "$linesize [$j:$start]($chunk->{Splittable})[$chunk->{String}] $chunksize(-$decchunksize) $size(-$decsize) $canpos\n";
 		}
 		if( $foldpos == $start && $size > $linesize && 
 				!($align =~ /w/i && $size - $decsize <= $linesize) ) {
@@ -2115,7 +3181,26 @@ sub _fold {
 					$self->fixsize($start, $count, $fixedglues)) / 2;
 			}
 		}
-		push @lines, [\%TextLineIndex, $start, $count, $shift, $fixedglues];
+		my $preskip;
+		my($preaols, $postaols) = (0, 0);
+		if( defined $lineskipmin ) {
+			($preaols, $postaols) = $self->altobjlineskip($start, $count);
+			$preskip = $lastpostaols + $preaols + $lineskipmin;
+			$preskip = $lineskip if $preskip < $lineskip;
+			$lastpostaols = $postaols;
+		} else {
+			$preskip = $lineskip;
+		}
+		my %hash =(
+		    Start      => $start ,
+		    Count      => $count ,
+		    Shift      => $shift ,
+		    FixedGlues => $fixedglues ,
+		    PreAOLS    => $preaols ,
+		    PostAOLS   => $postaols,
+		    PreSkip    => $preskip ,
+		    );
+		push(@lines,\%hash);
 		$start = $nextpos;
 	}
 	@lines;
@@ -2126,11 +3211,10 @@ sub _hyphenpos {
 	return unless $chunk->{Class} == 17 && !$chunk->{Style}{nohyphen} &&
 		!$chunk->{Style}{ruby};
 	my $string = $chunk->{String};
-#print "$string, $decsize\n";
 	my($can, $canleft, $pre, $word);
 	if( $string =~ /([A-Za-z]-)([A-Za-z])/ ) {
 		$can = $`.$1;
-		$canleft = $2.$';
+		$canleft = $2.$'; #'
 	} elsif( $string =~ /[A-Za-z]{5,}/ ) {
 		$pre = $`;
 		$word = $&;
@@ -2179,6 +3263,8 @@ sub _inshyphen {
 
 sub _chunkssize {
 	my($chunks, $start, $count) = @_;
+	die "cannot calc size of Text, may be missing font in TextStyle"
+		unless $chunks;
 	$start += 0;
 	$start = 0 if $start < 0;
 	$count ||= @$chunks - $start;
@@ -2240,7 +3326,11 @@ sub _chunkcount {
 
 sub _chunksize {
 	my($chunk, $noglue) = @_;
-	my $fontobj = $chunk->{Style}{font};
+	#my $fontobj = $chunk->{Style}{font};
+	my $fontobj = $chunk->{Style}->selectfont;
+	unless( $fontobj ) {
+		croak "internal error: missing font in style";
+	}
 	my $fontsize = $chunk->{Style}{fontsize};
 	my $direction = $fontobj->{direction};
 	my $size = $direction eq 'H' ? 
@@ -2261,12 +3351,15 @@ sub _chunkfixsize {
 	my($chunk, $fixedglue) = @_;
 	$fixedglue ||= 0;
 	my $fontobj = $chunk->{Style}{font};
+	unless( $fontobj ) {
+		croak "internal error: missing font in style";
+	}
 	my $fontsize = $chunk->{Style}{fontsize};
 	my $direction = $fontobj->{direction};
 	my $size = $direction eq 'H' ? 
 		_chunkfontsizeH($fontobj, $fontsize, $chunk) :
 		_chunkfontsizeV($fontobj, $fontsize, $chunk);
-	$size += $fontsize * ($fixedglue - 
+	$size += $fontsize * ($chunk->{Glue} + $fixedglue - 
 		$chunk->{PreShift} - $chunk->{PostShift});
 	$size;
 }
@@ -2275,7 +3368,7 @@ sub _chunkfontsizeH {
 	my($fontobj, $fontsize, $chunk) = @_;
 	return $chunk->{AltObj}->size('H') if $chunk->{AltObj};
 	my $size = 0;
-	if( UNIVERSAL::isa($fontobj, "PDFJ::JFont") ) {
+	if( PDFJ::Util::objisa($fontobj, "PDFJ::CIDFont") ) {
 		my $combo = $fontobj->{combo};
 		my $hfont = $fontobj->{hfontobj};
 		my $mode = $chunk->{Mode};
@@ -2284,14 +3377,15 @@ sub _chunkfontsizeH {
 		} elsif( $mode eq 'h' ) {
 			$size = $chunk->{Count} / 2;
 		} elsif( $combo ) {
-			$size = $hfont->string_fontwidth($chunk->{String});
+			$size = $fontobj->{hsize} * 
+				$hfont->string_fontwidth($chunk->{String});
 		} else {
 			$size = $chunk->{Count} / 2;
 		}
-	} elsif( UNIVERSAL::isa($fontobj, "PDFJ::AFont") ) {
+	} elsif( PDFJ::Util::objisa($fontobj, "PDFJ::AFont") ) {
 		$size = $fontobj->string_fontwidth($chunk->{String});
 	} else { 
-		croak "internal error: missing font object";
+		croak "internal error: missing font object ($fontobj)";
 	}
 	$size *= $fontsize;
 	$size;
@@ -2301,7 +3395,7 @@ sub _chunkfontsizeV {
 	my($fontobj, $fontsize, $chunk) = @_;
 	return $chunk->{AltObj}->size('V') if $chunk->{AltObj};
 	my $size = 0;
-	if( UNIVERSAL::isa($fontobj, "PDFJ::JFont") ) {
+	if( PDFJ::Util::objisa($fontobj, "PDFJ::CIDFont") ) {
 		my $combo = $fontobj->{combo};
 		my $hfont = $fontobj->{hfontobj};
 		my $mode = $chunk->{Mode};
@@ -2311,14 +3405,14 @@ sub _chunkfontsizeV {
 			$size = $chunk->{Count};
 		} elsif( $combo ) {
 			$size = $chunk->{Class} == 11 ? 1 :
-				$hfont->string_fontwidth($chunk->{String});
+				$fontobj->{hsize} * $hfont->string_fontwidth($chunk->{String});
 		} else {
 			$size = $chunk->{Count};
 		}
-	} elsif( UNIVERSAL::isa($fontobj, "PDFJ::AFont") ) {
+	} elsif( PDFJ::Util::objisa($fontobj, "PDFJ::AFont") ) {
 		$size = $fontobj->string_fontwidth($chunk->{String});
 	} else { 
-		croak "internal error: missing font object";
+		croak "internal error: missing font object ($fontobj)";
 	}
 	$size *= $fontsize;
 	$size;
@@ -2413,6 +3507,8 @@ sub fixgluedec {
 	\@fixedglues;
 }
 
+sub onshow { $_[0]->{style}{onshow} }
+
 sub _show {
 	my($self, $page, $x, $y) = @_;
 	$self->_showpart($page, $x, $y, 0, $self->chunksnum);
@@ -2424,7 +3520,7 @@ sub _showpart {
 	my $docobj = $page->docobj;
 	my $chunksnum = $self->chunksnum;
 	my %usefontname;
-	my($tj, $dotpdf, $shapepdf) = ("") x 3;
+	my(@tj, @dotpdf, @shapepdf);
 	my $lasttextspec = PDFJ::TextSpec->new;
 	my($ulx, $uly, $bxx, $bxy);
 	my($lastfontsize, $postshift, $slant, $lastfrx, $lastfry, $va) = (0) x 6;
@@ -2436,55 +3532,62 @@ sub _showpart {
 		# my $style = $chunk->{Style};
 		my $style = $chunk->{Style}->clone;
 		my $direction = $style->{font}->{direction};
-		my($fontname, $hname) = $style->selectfontname($mode);
-		my $fontobj = $style->{font} = $docobj->_fontobj($fontname, $hname);
+		my($fontname, $hname, $hsize) = $style->selectfontname;
+		my $fontobj = $style->{font} = 
+			$docobj->_fontobj($fontname, $hname, $hsize);
 		my $combo = $fontobj->{combo};
 		my $usefname = $mode eq 'a' && $hname ? $hname : $fontname;
 		$usefontname{$usefname}++;
 		my $fontsize = $style->{fontsize};
 		$postshift *= $lastfontsize / $fontsize;
-		$style->{slant} = 1 if $mode eq 'z' && $style->{italic};
-		my $textspec = PDFJ::TextSpec->new($style, $usefname);
+		$style->{slant} = 1 if ($mode eq 'z' || !$combo) && $style->{italic};
+		my $textspec = PDFJ::TextSpec->new($style, $usefname, 
+			($mode eq 'a' ? $fontobj->{hsize} : 0));
+#print "$j:$va:[$chunk->{String}] $mode, $class, {",join(",",%$style),"}\n";
+		my $qclose = 0;
 		if( $direction eq 'V' && $combo && $mode eq 'a' ) {
 			if( $va != $class ) {
-				my($vax, $vay) = $class == 11 ? 
-					($x - _chunkfontsizeH($fontobj, $fontsize, $chunk) / 2,
-					$y - $fontsize * $PDFJ::Default{VHShift}) : 
-					($x + $fontsize * $PDFJ::Default{VAShift}, $y);
-				$tj .= "] TJ ET Q " if $tj;
-				$tj .= $class == 11 ? 
-					$textspec->pdf."$vax $vay Td  [" :
-					$textspec->pdf."0 -1 1 0 $vax $vay Tm [";
-				$lasttextspec->copy($textspec);
+				$qclose = 1;
 				$va = $class;
 			}
 		} elsif( $va ) {
-			$tj .= "] TJ ET Q " if $tj;
-			$tj .= $textspec->pdf."$x $y Td [";
-			$lasttextspec->copy($textspec);
+			$qclose = 1;
 			$va = 0;
 		}
 		if( $style->{slant} ) {
 			#croak "slant style for ascii not allowed" 
 			#	if $mode eq 'a';
 			unless( $slant ) {
-				my($sx, $sy) = $direction eq 'H' ? 
-					(0, $PDFJ::Default{SlantRatio}) : 
-					($PDFJ::Default{SlantRatio}, 0);
-				$tj .= "] TJ ET Q " if $tj;
-				$tj .= $textspec->pdf."1 $sx $sy 1 $x $y Tm [";
-				$lasttextspec->copy($textspec);
+				$qclose = 1;
 				$slant = 1;
 			}
 		} elsif( $slant ) {
-			$tj .= "] TJ ET Q " if $tj;
-			$tj .= $textspec->pdf."$x $y Td [";
-			$lasttextspec->copy($textspec);
+			$qclose = 1;
 			$slant = 0;
 		}
-		unless( $lasttextspec->equal($textspec) ) {
-			$tj .= "] TJ ET Q " if $tj;
-			$tj .= $textspec->pdf."$x $y Td [";
+		$qclose = 1 unless $lasttextspec->equal($textspec);
+		if( $qclose ) {
+			my @qopen;
+			if( $direction eq 'V' && $combo && $mode eq 'a' ) {
+				my($vax, $vay) = $class == 11 ? 
+					($x - _chunkfontsizeH($fontobj, $fontsize, $chunk) / 2,
+					$y - $fontsize * $PDFJ::Default{VHShift}) : 
+					($x + $fontsize * $PDFJ::Default{VAShift}, $y);
+				@qopen = ($class == 11 ? 
+					($textspec->pdf, numbers($vax, $vay), "Td [") :
+					$style->{slant} ? 
+					($textspec->pdf, numbers(0, -1, 1, $PDFJ::Default{SlantRatio}, $vax, $vay), "Tm [") :
+					($textspec->pdf, numbers(0, -1, 1, 0, $vax, $vay), "Tm ["));
+			} elsif( $style->{slant} ) {
+				my($sx, $sy) = $direction eq 'H' ? 
+					(0, $PDFJ::Default{SlantRatio}) : 
+					($PDFJ::Default{SlantRatio}, 0);
+				@qopen = ($textspec->pdf, numbers(1, $sx, $sy, 1, $x, $y), 
+					"Tm [");
+			}
+			push @tj, $lasttextspec->endpdf if @tj;
+			push @tj, (@qopen ? @qopen : ($textspec->pdf, numbers($x, $y), 
+				"Td ["));
 			$lasttextspec->copy($textspec);
 		}
 		my $shift = $va == 11 ? 0 : $j == 0 ? $chunk->{PreShift} :
@@ -2495,24 +3598,32 @@ sub _showpart {
 		$shift *= 1000;
 		if( $shift ) {
 			my $vs = $va ? -$shift : $shift;
-			$tj .= "$vs " 
+			push @tj, number($vs);
 		}
 		my($flx, $fly) = ($x, $y);
 		my($frx, $fry) = ($x, $y);
 		my($fcx, $fcy) = ($x, $y);
 		if( $direction eq 'H' ) {
-			$flx -= ($postshift - ($j == 0 ? 0 : 
+			#$flx -= ($postshift - ($j == 0 ? 0 : 
+			#	($fixedglues ? $chunk->{Glue} + ($fixedglues->[$j] || 0): 
+			#	$chunk->{Glue}))) * $fontsize;
+			$flx -= ($j == 0 ? $chunk->{PreShift} : 
+				$postshift + $chunk->{PreShift} - 
 				($fixedglues ? $chunk->{Glue} + ($fixedglues->[$j] || 0): 
-				$chunk->{Glue}))) * $fontsize;
+				$chunk->{Glue})) * $fontsize;
 			$frx = $flx + (_chunkfontsizeH($fontobj, $fontsize, $chunk) -
 				($chunk->{PreShift} + $chunk->{PostShift}) * $fontsize);
 			$fcx = $flx + (_chunkfontsizeH($fontobj, $fontsize, $chunk) -
 				($chunk->{PreShift} + $chunk->{PostShift}) * $fontsize) /
 				 2;
 		} else {
-			$fly += ($postshift - ($j == 0 ? 0 : 
+			#$fly += ($postshift - ($j == 0 ? 0 : 
+			#	($fixedglues ? $chunk->{Glue} + ($fixedglues->[$j] || 0): 
+			#	$chunk->{Glue}))) * $fontsize;
+			$fly += ($j == 0 ? $chunk->{PreShift} : 
+				$postshift + $chunk->{PreShift} - 
 				($fixedglues ? $chunk->{Glue} + ($fixedglues->[$j] || 0): 
-				$chunk->{Glue}))) * $fontsize;
+				$chunk->{Glue})) * $fontsize;
 			$fry = $fly - (_chunkfontsizeV($fontobj, $fontsize, $chunk) -
 				($chunk->{PreShift} + $chunk->{PostShift}) * $fontsize);
 			$fcy = $fly - (_chunkfontsizeV($fontobj, $fontsize, $chunk) -
@@ -2529,11 +3640,10 @@ sub _showpart {
 			if( $mode eq 'O' ) {
 				my $title = $style->{outlinetitle};
 				my $level = $style->{outlinelevel};
-				$docobj->add_outline($title, $page->dest('XYZ', $ox, $oy, 0), 
-					$level);
+				$docobj->add_outline($title, $page, $ox, $oy, $level);
 			} elsif( $mode eq 'D' ) {
 				my $name = $style->{destname};
-				$docobj->add_dest($name, $page->dest('XYZ', $ox, $oy, 0));
+				$docobj->add_dest($name, $page, $ox, $oy);
 			}
 		}
 		if( $chunk->{AltObj} ) {
@@ -2566,35 +3676,29 @@ sub _showpart {
 			}
 			$altsize = $altsize * 1000 / $fontsize;
 			$altsize = -$altsize if $direction eq 'H';
-			$tj .= "$altsize ";
+			push @tj, number($altsize);
 			$altobj->show($page, $flx + $asx, $fly + $asy, $align);
-		} elsif( $chunk->{String} =~ /[^\x20-\x7e]/ ) {
-			my $ss = unpack('H*', $chunk->{String});
-			$tj .= "<$ss> ";
 		} else {
-			my $ss = $chunk->{String};
-			$ss =~ s/\\/\\\\/g;
-			$ss =~ s/\(/\\\(/g;
-			$ss =~ s/\)/\\\)/g;
-			$tj .= "($ss) ";
+			my $ss = stringstring($chunk, $fontobj, $usefname);
+			push @tj, $ss;
 		}
 		$postshift = $chunk->{PostShift};
 		if( $style->{withline} ) {
 			($ulx, $uly) = ($flx, $fly) unless defined $ulx;
 			$withlinestyle = $style->{withlinestyle};
 			if( $j == $count - 1 || $start + $j == $chunksnum - 1 ) {
-				$shapepdf .= $direction eq 'H' ? 
+				push @shapepdf, ($direction eq 'H' ? 
 					_withlinepdf($direction, $ulx, $uly, $frx - $ulx, 
 						$fontsize, $withlinestyle) :
 					_withlinepdf($direction, $ulx, $uly, $fry - $uly, 
-						$fontsize, $withlinestyle);
+						$fontsize, $withlinestyle));
 			}
 		} elsif( defined $ulx ) {
-			$shapepdf .= $direction eq 'H' ? 
+			push @shapepdf, ($direction eq 'H' ? 
 				_withlinepdf($direction, $ulx, $uly, $lastfrx - $ulx, 
 					$lastfontsize, $withlinestyle) :
 				_withlinepdf($direction, $ulx, $uly, $lastfry - $uly, 
-					$lastfontsize, $withlinestyle);
+					$lastfontsize, $withlinestyle));
 			undef $ulx;
 			undef $uly;
 		}
@@ -2603,24 +3707,24 @@ sub _showpart {
 			$withbox = $style->{withbox};
 			$withboxstyle = $style->{withboxstyle};
 			if( $j == $count - 1 || $start + $j == $chunksnum - 1 ) {
-				$shapepdf .= $direction eq 'H' ? 
+				push @shapepdf, ($direction eq 'H' ? 
 					_withboxpdf($page, $direction, $bxx, $bxy, $frx - $bxx, 
 						$fontsize, $withbox, $withboxstyle) :
 					_withboxpdf($page, $direction, $bxx, $bxy, $fry - $bxy, 
-						$fontsize, $withbox, $withboxstyle);
+						$fontsize, $withbox, $withboxstyle));
 			}
 		} elsif( defined $bxx ) {
-			$shapepdf .= $direction eq 'H' ? 
+			push @shapepdf, ($direction eq 'H' ? 
 				_withboxpdf($page, $direction, $bxx, $bxy, $lastfrx - $bxx, 
 					$lastfontsize, $withbox, $withboxstyle) :
 				_withboxpdf($page, $direction, $bxx, $bxy, $lastfry - $bxy, 
-					$lastfontsize, $withbox, $withboxstyle);
+					$lastfontsize, $withbox, $withboxstyle));
 			undef $bxx;
 			undef $bxy;
 		}
 		if( $style->{withdot} ) {
-			croak "withdot style needs JFont"
-				unless UNIVERSAL::isa($fontobj, "PDFJ::JFont");
+			croak "withdot style needs CIDFont"
+				unless PDFJ::Util::objisa($fontobj, "PDFJ::CIDFont");
 			my($dx, $dy, $ds, $dcode);
 			if( $direction eq 'H' ) {
 				($dx, $dy, $ds) = (
@@ -2636,7 +3740,7 @@ sub _showpart {
 				$dcode = unpack('H*', $PDFJ::Default{VDot}{$PDFJ::Default{Jcode}})
 			}
 			my $fontname = $fontobj->{zname};
-			$dotpdf .= "BT 0 Ts 0 Tr /$fontname $ds Tf $dx $dy Td <$dcode> Tj ET ";
+			push @dotpdf, "BT 0 Ts 0 Tr /$fontname", number($ds), "Tf", numbers($dx, $dy), "Td <$dcode> Tj ET";
 		}
 		if( $chunk->{RubyText} ) {
 			my $rubytext = $chunk->{RubyText};
@@ -2651,6 +3755,9 @@ sub _showpart {
 		}
 		if( $style->{withnote} ) {
 			my $notetext = $style->{withnote};
+			if( !ref($notetext) && $style->{withnotestyle} ) {
+				$notetext = PDFJ::Text->new($notetext, $style->{withnotestyle});
+			}
 			my $notesize = $notetext->size;
 			if( $direction eq 'H' ) {
 				$notetext->show($page, $frx - $notesize, 
@@ -2659,6 +3766,29 @@ sub _showpart {
 				$notetext->show($page, 
 					$frx + $PDFJ::Default{VNote} * $fontsize / 1000,
 					$fry + $notesize);
+			}
+		}
+		if( $style->{filltext} ) {
+			my $utext = PDFJ::Text->new($style->{filltext}, 
+				{font => $style->{font}, fontsize => $style->{fontsize}});
+			my $usize = $utext->size;
+			my $fillspace = $direction eq 'V' ? $lastfry - $fly : 
+				$lastfrx - $flx;
+			$fillspace = -$fillspace if $fillspace < 0;
+			my($x, $y) = ($lastfrx, $lastfry);
+			my $count = int($fillspace / $usize);
+			for( my $j = 0; $j < $count; $j++ ) {
+				$utext->show($page, $x, $y);
+				if( $direction eq 'H' ) {
+					$x += $usize;
+				} else {
+					$y -= $usize;
+				}
+			}
+		}
+		if( ref($style->{pageattr}) eq 'HASH' ) {
+			for my $key(keys %{$style->{pageattr}}) {
+				$page->setattr($key, $style->{pageattr}{$key});
 			}
 		}
 		($lastfrx, $lastfry) = ($frx, $fry);
@@ -2671,13 +3801,78 @@ sub _showpart {
 				$shift * $fontsize / 1000;
 		}
 	}
-	$tj .= "] TJ ET Q " if $tj;
-	$tj =~ s/> <//g;
-	$tj =~ s/\) \(//g;
-	$page->addcontents($shapepdf);
-	$page->addcontents($tj);
-	$page->addcontents($dotpdf);
+	push @tj, $lasttextspec->endpdf if @tj;
+	$page->addcontents(@shapepdf);
+	$page->addcontents(@tj);
+	$page->addcontents(@dotpdf);
 	$page->usefonts(keys %usefontname);
+}
+
+sub altobjlineskip {
+	my($self, $start, $count) = @_;
+	my $chunksnum = $self->chunksnum;
+	my $preaols = 0;
+	my $postaols = 0;
+	for( my $j = 0; $j < $count && $start + $j < $chunksnum; $j++ ) {
+		my $chunk = $self->chunk($start + $j);
+		my $style = $chunk->{Style};
+		my $direction = $style->{font}->{direction};
+		my $fontsize = $style->{fontsize};
+		if( $chunk->{AltObj} ) {
+			my $altobj = $chunk->{AltObj};
+			my $objalign = $style->{objalign} || "";
+			if( $direction eq 'H' ) {
+				my $altsize = $altobj->size('V');
+				if( $altsize > $fontsize ) {
+					my $diff = $altsize - $fontsize;
+					if( $objalign =~ /t/ ) {
+						$postaols = $diff if $diff > $postaols;
+					} elsif( $objalign =~ /m/ ) {
+						$preaols = $diff / 2 if $diff / 2 > $preaols;
+						$postaols = $diff / 2 if $diff / 2 > $postaols;
+					} else { # /b/
+						$preaols = $diff if $diff > $preaols;
+					}
+				}
+			} else {
+				my $altsize = $altobj->size('H');
+				if( $altsize > $fontsize ) {
+					my $diff = $altsize - $fontsize;
+					if( $objalign =~ /l/ ) {
+						$preaols = $diff if $diff > $preaols;
+					} elsif( $objalign =~ /r/ ) {
+						$preaols = $diff / 2 if $diff / 2 > $preaols;
+						$postaols = $diff / 2 if $diff / 2 > $postaols;
+					} else { # /c/
+						$postaols = $diff if $diff > $postaols;
+					}
+				}
+			}
+		}
+	}
+	($preaols, $postaols);
+}
+
+sub stringstring {
+	my($chunk, $fontobj, $usefname) = @_;
+	my $str = $chunk->{String};
+	if( $chunk->{Mode} eq 'a' &&
+		$PDFJ::Default{Encodings}{$fontobj->{encoding}} eq 'ju' && 
+		$usefname eq $fontobj->{zname} ) {
+		$str =~ s/./\x00$&/g;
+	}
+	my $result;
+	if( $str =~ /[^\x20-\x7e]/ ) {
+		my $ss = unpack('H*', $str);
+		$result = "<$ss>";
+	} else {
+		my $ss = $str;
+		$ss =~ s/\\/\\\\/g;
+		$ss =~ s/\(/\\\(/g;
+		$ss =~ s/\)/\\\)/g;
+		$result = "($ss)";
+	}
+	$result;
 }
 
 sub _withlinepdf {
@@ -2721,6 +3916,7 @@ sub _withboxpdf {
 # 15: unit
 # 16: space
 # 17: ascii
+# 18: special
 
 # modes are
 # 'z': zenkaku Japanese
@@ -2730,76 +3926,61 @@ sub _withboxpdf {
 # 'N': Newline
 # 'O': Outline
 # 'D': Destination
-
-# chunk array index
-my %ChunkIndex = (
-	Style => 1,			# PDFJ::TextStyle object
-	Mode => 2,			# description as above
-	Class => 3,			# description as above
-	Splittable => 4,	# 1 for splittable at pre-postion
-	Glue => 5,			# normal glue width
-	GlueDec => 6,		# decrease adjustable glue width
-	GlueInc => 7,		# increase adjustable glue width
-	GluePref => 8,		# glue preference
-	Count => 9,			# characters count
-	String => 10,		# characters string
-	PreShift => 11,		# postion shift at pre-postion
-	PostShift => 12,	# postion shift at post-postion
-	GlueFix => 13,		# fixed glue (to be calculated)
-	Hyphened => 14,		# 1 for splitted, 2 for hyphened
-	RubyText => 15,		# ruby PDFJ::Text object
-	AltObj => 16,		# alternative object for String 
-);
+# 'U': Null
 
 sub _specialchunk {
 	my($style, $mode, $class, $splittable) = @_;
-	[\%ChunkIndex, $style, $mode, $class, $splittable,
-		0, 0, 0, 0, 0, "", 0, 0];
+	PDFJ::TextChunk->new($style, $mode, $class, $splittable,
+		0, 0, 0, 0, 0, "", 0, 0);
 }
 
 sub _newlinechunk {
 	my($textstyle) = @_;
-	_specialchunk($textstyle, 'N', 11, 2);
+	_specialchunk($textstyle, 'N', 18, 2);
 }
 
 sub _outlinechunk {
 	my($outlineobj, $textstyle) = @_;
-	my $style = $textstyle->clone(%$outlineobj);
-	_specialchunk($style, 'O', 11, 1);
+	my $style = $textstyle->linkedclone(%$outlineobj);
+	_specialchunk($style, 'O', 18, 1);
 }
 
 sub _destchunk {
 	my($destobj, $textstyle) = @_;
-	my $style = $textstyle->clone(%$destobj);
-	_specialchunk($style, 'D', 11, 1);
+	my $style = $textstyle->linkedclone(%$destobj);
+	_specialchunk($style, 'D', 18, 1);
+}
+
+sub _nullchunk {
+	my($nullobj, $textstyle) = @_;
+	my $style = $textstyle->linkedclone(%$nullobj);
+	_specialchunk($style, 'U', 18, 1);
 }
 
 sub _objchunk {
-	my($obj, $textstyle) = @_;
-	my $chunk = _specialchunk($textstyle, 'S', 11, 1);
+	my($obj, $textstyle, $class) = @_;
+	$class ||= 18;
+	my $chunk = _specialchunk(
+		($obj->can('textstyle') ? $textstyle->linkedclone($obj->textstyle) : 
+		$textstyle), 'S', $class, 1);
 	$chunk->{AltObj} = $obj;
+	if( $obj->can('glue') ) {
+		@$chunk{qw(Glue GlueDec GlueInc GluePref)} = $obj->glue;
+	}
 	$chunk;
 }
 
-# obsolete
-sub _imagechunk {
-	my($img, $textstyle) = @_;
-	my $chunk = _specialchunk($textstyle, 'I', 11, 1);
-	$chunk->{AltObj} = $img;
-	$chunk;
-}
-
-# obsolete
-sub _shapechunk {
-	my($shape, $textstyle) = @_;
-	my $chunk = _specialchunk($textstyle, 'S', 11, 1);
-	$chunk->{AltObj} = $shape;
-	my($left, $bottom) = ($shape->left, $shape->bottom);
+sub _rubychunk {
+	my($obj, $textstyle, $rubyoverlap) = @_;
+	my $chunk = _objchunk($obj, $textstyle, 13);
+	$chunk->{RubyOverlap} = $rubyoverlap;
 	$chunk;
 }
 
 sub catchunks {
 	my($self, $src) = @_;
+	my $noglue = $self->style->{noglue} || 0;
+	my $fontsize = $self->style->{fontsize};
 	my $dest = $self->chunks;
 	if( @$dest && @$src ) {
 		my($splittable, $glue, $gluedec, $glueinc, $gluepref);
@@ -2809,19 +3990,31 @@ sub catchunks {
 		my $class = $fchunk->{Class};
 		my $mode = $fchunk->{Mode};
 		my $style = $fchunk->{Style};
-		$splittable = $fchunk->{Splittable} == 2 ? 2 : 
-			$style->{suffix} ? 0 : 
-			$lastmode eq 'O' ? 0 :
-			$PDFJ::Default{Splittable}->[$lastclass][$class];
-		$glue = ($lastmode =~ /^[ON]$/ || $mode =~ /^[ON]$/) ? 
-			PDFJ::GlueNon :
-			$PDFJ::Default{Glue}->[$lastclass][$class];
-		($glue, $gluedec, $glueinc, $gluepref) = _calcglue($glue);
-		$fchunk->{Splittable} = $splittable;
-		$fchunk->{Glue} = $glue;
-		$fchunk->{GlueDec} = $gluedec;
-		$fchunk->{GlueInc} = $glueinc;
-		$fchunk->{GluePref} = $gluepref;
+		if( $class != 18 ) { # NOT special
+			$splittable = $fchunk->{Splittable} == 2 ? 2 : 
+				$style->{suffix} ? 0 : 
+				$PDFJ::Default{Splittable}->[$lastclass][$class];
+			$fchunk->{Splittable} = $splittable;
+			$glue = $noglue ? 
+				PDFJ::GlueNon :
+				$PDFJ::Default{Glue}->[$lastclass][$class];
+			($glue, $gluedec, $glueinc, $gluepref) = _calcglue($glue);
+			$fchunk->{Glue} = $glue;
+			$fchunk->{GlueDec} = $gluedec;
+			$fchunk->{GlueInc} = $glueinc;
+			$fchunk->{GluePref} = $gluepref;
+		}
+		unless( $PDFJ::Default{NoRubyOverlap} ) {
+			if( $lastclass == 13 && $PDFJ::Default{RubyPostOverlap}{$class} ) {
+				my $lastchunk = _lastchunk($dest);
+				my $overlap = $lastchunk->{RubyOverlap};
+				$lastchunk->{PostShift} += $overlap / $fontsize;
+			} elsif( $class == 13 && 
+				$PDFJ::Default{RubyPreOverlap}{$lastclass} ) {
+				my $overlap = $fchunk->{RubyOverlap};
+				$fchunk->{PreShift} += $overlap / $fontsize;
+			}
+		}
 	}
 	push @$dest, @$src;
 }
@@ -2831,10 +4024,14 @@ sub _appendchunks {
 	$preshift ||= 0;
 	$postshift ||= 0;
 	my($splittable, $glue, $gluedec, $glueinc, $gluepref) = (0) x 5;
-	if( exists $style->{font} && exists $style->{font}{subset_unicodes} ) {
+	my $font = $style->selectfont;
+	if( $font && exists $font->{subset_unicodes} ) {
 		my $unicode = $PDFJ::Default{Jcode} eq 'SJIS' ? 
-			PDFJ::Unicode::s2u($char) : PDFJ::Unicode::e2u($char);
-		$style->{font}{subset_unicodes}{$unicode}++;
+			PDFJ::Unicode::s2u($char) : 
+			$PDFJ::Default{Jcode} eq 'EUC' ? 
+			PDFJ::Unicode::e2u($char) :
+			unpack("n", $char); # UNICODE or UTF8 (UTF8 already converted to UNICODE)
+		$font->{subset_unicodes}{$unicode} = 1 if $unicode;
 	}
 	if( @$chunks ) {
 		my $lastchunk = $chunks->[$#$chunks];
@@ -2842,15 +4039,23 @@ sub _appendchunks {
 		my $lastclass = $lastchunk->{Class};
 		my $lastruby = $lastchunk->{Style}{ruby};
 		$splittable = $style->{suffix} ? 0 : 
-			$lastmode eq 'O' ? 0 :
+			# $lastmode eq 'O' ? 0 :
 			$PDFJ::Default{Splittable}->[$lastclass][$class];
-		$glue = ($lastmode =~ /^[ON]$/ || $mode =~ /^[ON]$/) ? 
+		#$glue = ($style->{noglue} || $lastmode =~ /^[ON]$/ || $mode =~ /^[ON]$/) ? 
+		$glue = $style->{noglue} ? 
 			PDFJ::GlueNon :
 			$PDFJ::Default{Glue}->[$lastclass][$class];
-		if( ($mode eq 'a' && $lastmode eq 'a' && $class == $lastclass && 
-			($class == 11 || (!@$glue && !$splittable))) ||
-			($style->{ruby} && $style->{ruby} eq $lastruby && 
-			($class == 11 || $class == 17) && $class == $lastclass)
+		if( (
+			$mode eq 'a' && 
+			$lastmode eq 'a' && 
+			$class == $lastclass && 
+			($class == 11 || (!@$glue && !$splittable))
+			) 
+			#||
+			#(
+			#$style->{ruby} && $style->{ruby} eq $lastruby && 
+			#($class == 11 || $class == 17) && $class == $lastclass
+			#)
 			 ) {
 			$lastchunk->{Count}++;
 			$lastchunk->{String} .= $char;
@@ -2858,15 +4063,15 @@ sub _appendchunks {
 		}
 		($glue, $gluedec, $glueinc, $gluepref) = _calcglue($glue);
 	}
-	push @$chunks, [\%ChunkIndex, $style, $mode, $class, $splittable, 
+	push @$chunks, PDFJ::TextChunk->new($style, $mode, $class, $splittable, 
 		$glue, $gluedec, $glueinc, $gluepref, 1, $char, 
-		$preshift, $postshift];
+		$preshift, $postshift);
 }
 
 sub _calcglue {
 	my($glue) = @_;
 	my($gluedec, $glueinc, $gluepref) = (0, 0, 0);
-	if( @$glue ) {
+	if( ref($glue) && @$glue ) {
 		my($gmin, $gnormal, $gmax, $gpref) = @$glue;
 		($glue, $gluedec, $glueinc) = (
 			$gnormal / 1000, 
@@ -2880,34 +4085,55 @@ sub _calcglue {
 	($glue, $gluedec, $glueinc, $gluepref);
 }
 
+sub _lastchunk {
+	my($chunks) = @_;
+	@$chunks ? $chunks->[$#$chunks] : undef;
+}
+
 sub _lastclass {
 	my($chunks) = @_;
-	@$chunks ? $chunks->[$#$chunks]{Class} : undef;
+	@$chunks ? $chunks->[$#$chunks]{Class} : '';
+}
+
+sub _lastclasseq {
+	my($chunks, $eqclass) = @_;
+	@$chunks && $chunks->[$#$chunks]{Class} == $eqclass;
 }
 
 sub _lastmode {
 	my($chunks) = @_;
-	@$chunks ? $chunks->[$#$chunks]{Mode} : undef;
+	@$chunks ? $chunks->[$#$chunks]{Mode} : '';
 }
 
 sub splittext {
-	my($self, $str) = @_;
-	if(  UNIVERSAL::isa($self->style->{font}, "PDFJ::AFont") ) {
+	my($self, $str, $noshift) = @_;
+	return [] if $str eq '';
+	if(  PDFJ::Util::objisa($self->style->{font}, "PDFJ::AFont") ) {
 		&splittext_ASCII;
+	} elsif( $self->style->{code} ) {
+		no strict 'refs';
+		my $func = "splittext_" . $self->style->{code};
+		&$func;
 	} elsif( $PDFJ::Default{Jcode} eq 'SJIS' ) {
 		&splittext_SJIS;
-	} else {
+	} elsif( $PDFJ::Default{Jcode} eq 'EUC' ) {
 		&splittext_EUC;
+	} elsif( $PDFJ::Default{Jcode} eq 'UTF8' ) {
+		&splittext_UTF8;
+	} elsif( $PDFJ::Default{Jcode} eq 'UNICODE' ) {
+		&splittext_UNICODE;
+	} else {
 	}
 }
 
 sub splittext_ASCII {
-	my($self, $str) = @_;
+	my($self, $str, $noshift) = @_;
 	my $style = $self->style;
 	my $result = [];
 	my @c = split('', $str);
 	for( my $j = 0; $j <= $#c; $j++ ) {
 		my $c = $c[$j];
+		next if $c eq "\x00";
 		if( $c eq " " ) {
 			_appendchunks($result, $style, 'a', 16, $c);
 		} else {
@@ -2915,7 +4141,7 @@ sub splittext_ASCII {
 				_appendchunks($result, $style, 'a', 11, $c);
 			} elsif( $c =~ /[0-9]/ ) {
 				_appendchunks($result, $style, 'a', 14, $c);
-			} elsif( $c =~ /[,. ]/ && _lastclass($result) == 14 &&
+			} elsif( $c =~ /[,. ]/ && _lastclasseq($result, 14) &&
 				$c[$j+1] =~ /[0-9]/ ) {
 				_appendchunks($result, $style, 'a', 14, $c);
 			} else {
@@ -2926,8 +4152,59 @@ sub splittext_ASCII {
 	$result;
 }
 
+sub splittext_UTF8 {
+	my($self, $str, $noshift) = @_;
+	require PDFJ::Unicode;
+	$self->splittext_UNICODE(PDFJ::Unicode::utf8tounicode($str));
+}
+
+sub splittext_UNICODE {
+	my($self, $str, $noshift) = @_;
+	$str =~ s/^\xfe\xff//;
+	my $style = $self->style;
+	my $result = [];
+	my @c = split('', $str);
+	for( my $j = 0; $j <= $#c; $j += 2 ) {
+		my $c = $c[$j].$c[$j+1];
+		my $ca = $c[$j+1];
+		if( $c ge "\xff\x61" && $c le "\xff\x9f" ) {
+			_appendchunks($result, $style, 'h', 11, $c);
+		} elsif( $c eq "\x00\x20" ) {
+			_appendchunks($result, $style, 'a', 16, $ca);
+		} elsif( $c le "\x00\xff" ) {
+			if( $style->{vh} ) {
+				_appendchunks($result, $style, 'a', 11, $ca);
+			} elsif( $c ge "\x00\x30" && $c le "\x00\x39" ) { # /[0-9]/
+				_appendchunks($result, $style, 'a', 14, $ca);
+			} elsif( ($c eq "\x00\x2c" || $c eq "\x00\x2e") && # /[,.]/
+				_lastclasseq($result, 14) &&
+				$c[$j+2].$c[$j+3] ge "\x00\x30" && 
+				$c[$j+2].$c[$j+3] le "\x00\x39" ) {
+				_appendchunks($result, $style, 'a', 14, $ca);
+			} else {
+				_appendchunks($result, $style, 'a', 17, $ca);
+			}
+		} else {
+			my $class = $PDFJ::Default{Class}{UNICODE}{$c};
+			unless( defined $class ) {
+				if( $c ge "\x30\x41" && $c le "\x30\x93" ) { # hirakana
+					$class = 10;
+				} else {
+					$class = 11;
+				}
+			}
+			my $preshift = $noshift ? 0 : 
+				($PDFJ::Default{PreShift}{UNICODE}{$c} || 0) / 1000;
+			my $postshift = $noshift ? 0 : 
+				($PDFJ::Default{PostShift}{UNICODE}{$c} || 0) / 1000;
+			_appendchunks($result, $style, 'z', $class, $c, $preshift, $postshift);
+		}
+	}
+	$result;
+}
+
 sub splittext_EUC {
-	my($self, $str) = @_;
+	my($self, $str, $noshift) = @_;
 	my $style = $self->style;
 	my $result = [];
 	my @c = split('', $str);
@@ -2937,7 +4214,13 @@ sub splittext_EUC {
 			_appendchunks($result, $style, 'h', 11, $c.$c[$j+1]);
 			$j++;
 		} elsif( $c eq "\x8f" ) {
-			_appendchunks($result, $style, 'z', 11, $c.$c[$j+1].$c[$j+2]);
+			my $tmp = $c.$c[$j+1].$c[$j+2];
+			my $utmp = PDFJ::Unicode::e2u($tmp);
+			if( $utmp > 0 && $utmp <= 0xff ) {
+				_appendchunks($result, $style, 'a', 17, chr($utmp));
+			} else {
+				_appendchunks($result, $style, 'z', 11, $tmp);
+			}
 			$j += 2;
 		} elsif( $c eq " " ) {
 			_appendchunks($result, $style, 'a', 16, $c);
@@ -2946,7 +4229,7 @@ sub splittext_EUC {
 				_appendchunks($result, $style, 'a', 11, $c);
 			} elsif( $c =~ /[0-9]/ ) {
 				_appendchunks($result, $style, 'a', 14, $c);
-			} elsif( $c =~ /[,. ]/ && _lastclass($result) == 14 && 
+			} elsif( $c =~ /[,. ]/ && _lastclasseq($result, 14) && 
 				$c[$j+1] =~ /[0-9]/ ) {
 				_appendchunks($result, $style, 'a', 14, $c);
 			} else {
@@ -2963,8 +4246,10 @@ sub splittext_EUC {
 					$class = 11;
 				}
 			}
-			my $preshift = ($PDFJ::Default{PreShift}{EUC}{$k} || 0) / 1000;
-			my $postshift = ($PDFJ::Default{PostShift}{EUC}{$k} || 0) / 1000;
+			my $preshift = $noshift ? 0 : 
+				($PDFJ::Default{PreShift}{EUC}{$k} || 0) / 1000;
+			my $postshift = $noshift ? 0 : 
+				($PDFJ::Default{PostShift}{EUC}{$k} || 0) / 1000;
 			_appendchunks($result, $style, 'z', $class, $k, $preshift, $postshift);
 		}
 	}
@@ -2972,7 +4257,7 @@ sub splittext_EUC {
 }
 
 sub splittext_SJIS {
-	my($self, $str) = @_;
+	my($self, $str, $noshift) = @_;
 	my $style = $self->style;
 	my $result = [];
 	my @c = split('', $str);
@@ -2989,8 +4274,10 @@ sub splittext_SJIS {
 					$class = 11;
 				}
 			}
-			my $preshift = ($PDFJ::Default{PreShift}{SJIS}{$k} || 0) / 1000;
-			my $postshift = ($PDFJ::Default{PostShift}{SJIS}{$k} || 0) / 1000;
+			my $preshift = $noshift ? 0 : 
+				($PDFJ::Default{PreShift}{SJIS}{$k} || 0) / 1000;
+			my $postshift = $noshift ? 0 : 
+				($PDFJ::Default{PostShift}{SJIS}{$k} || 0) / 1000;
 			_appendchunks($result, $style, 'z', $class, $k, $preshift, $postshift);
 		} elsif( $c eq " " ) {
 			_appendchunks($result, $style, 'a', 16, $c);
@@ -3001,7 +4288,7 @@ sub splittext_SJIS {
 				_appendchunks($result, $style, 'a', 11, $c);
 			} elsif( $c =~ /[0-9]/ ) {
 				_appendchunks($result, $style, 'a', 14, $c);
-			} elsif( $c =~ /[,. ]/ && _lastclass($result) == 14 &&
+			} elsif( $c =~ /[,. ]/ && _lastclasseq($result, 14) &&
 				defined $c[$j+1] && $c[$j+1] =~ /[0-9]/ ) {
 				_appendchunks($result, $style, 'a', 14, $c);
 			} else {
@@ -3010,6 +4297,52 @@ sub splittext_SJIS {
 		}
 	}
 	$result;
+}
+
+#--------------------------------------------------------------------------
+package PDFJ::TextChunk;
+use strict;
+
+# chunk array index
+my %ChunkIndex = (
+	Style       =>  0,	# PDFJ::TextStyle object
+	Mode        =>  1,	# description as above
+	Class       =>  2,	# description as above
+	Splittable  =>  3,	# 1 for splittable at pre-postion
+	Glue        =>  4,	# normal glue width
+	GlueDec     =>  5,	# decrease adjustable glue width
+	GlueInc     =>  6,	# increase adjustable glue width
+	GluePref    =>  7,	# glue preference
+	Count       =>  8,	# characters count
+	String      =>  9,	# characters string
+	PreShift    => 10,	# postion shift at pre-postion
+	PostShift   => 11,	# postion shift at post-postion
+	GlueFix     => 12,	# fixed glue (to be calculated)
+	Hyphened    => 13,	# 1 for splitted, 2 for hyphened
+	RubyText    => 14,	# ruby PDFJ::Text object
+	AltObj      => 15,	# alternative object for String 
+	RubyOverlap => 16,	# ruby overlap size
+);
+
+sub new {
+	my($class, @args) = @_;
+        my %hash  = map {  $_ => $args[ $ChunkIndex{ $_ } ] } keys(%ChunkIndex) ;
+
+	bless \%hash, $class;
+}
+
+sub clone {
+	my($self) = @_;
+	my @clone = @$self;
+	bless \@clone, ref($self);
+}
+
+sub print {
+	my($self) = @_;
+	print "TextChunk\n";
+	for my $key(sort {$ChunkIndex{$a} <=> $ChunkIndex{$b}} keys %ChunkIndex) {
+		print "  $key => $self->{$key}\n";
+	}
 }
 
 #--------------------------------------------------------------------------
@@ -3031,27 +4364,63 @@ use vars qw(@ISA);
 sub Paragraph { PDFJ::Paragraph->new(@_) }
 
 sub new {
-	my($class, $text, $style) = @_;
+	my($class, $text, $style)
+		= PDFJ::Util::methodargs([qw(text style)], @_);
 	croak "paragraph text argument must be a PDFJ::Text object"
-		unless UNIVERSAL::isa($text, 'PDFJ::Text');
+		unless PDFJ::Util::objisa($text, 'PDFJ::Text');
+	$style = PDFJ::ParagraphStyle->new($style) 
+		if $style && (!ref($style) || ref($style) eq 'HASH');
 	croak "paragraph style argument must be a PDFJ::ParagraphStyle object"
-		unless UNIVERSAL::isa($style, 'PDFJ::ParagraphStyle');
+		unless PDFJ::Util::objisa($style, 'PDFJ::ParagraphStyle');
 	croak "size specification missing" unless $style->{size};
 	croak "linefeed specification missing" unless exists $style->{linefeed};
 	croak "align specification missing" unless $style->{align};
 	my $self = bless { text => $text, style => $style }, $class;
-	$self->{linefeed} = $style->{linefeed} =~ /(\d+)%/ ? 
-		$text->fontsize * $1 / 100 : $style->{linefeed};
+	$self->typename($style->{typename}) if $style->{typename} ne '';
+	$self->{linefeed} = $style->{linefeed};
+	if( $self->{linefeed} =~ s/s(\d+%?)// ) {
+		$self->{lineskipmin} = $1;
+		if( $self->{lineskipmin} =~ /(\d+)%/ ) { 
+			$self->{lineskipmin} = $text->fontsize * $1 / 100;
+		}
+	}
+	if( defined $style->{objinbounds} ) {
+		$self->{objinbounds} = $style->{objinbounds};
+	} elsif( defined $self->{lineskipmin} ) {
+		$self->{objinbounds} = 1;
+	}
+	if( $self->{linefeed} =~ /(\d+)%/ ) { 
+		$self->{linefeed} = $text->fontsize * $1 / 100;
+	}
 	my $lineskip = $self->{linefeed} - $text->fontsize;
 	$lineskip = 0 if $lineskip < 0;
+	$self->{lineskip} = $lineskip;
 	$self->{preskip} = exists $style->{preskip} ? 
 		$style->{preskip} : $lineskip * $PDFJ::Default{ParaPreSkipRatio};
+	if( ref($self->{preskip}) eq 'HASH' ) {
+		for my $key(keys %{$self->{preskip}}) {
+			if( $self->{preskip}{$key} =~ /(\d+)%/ ) {
+				$self->{preskip}{$key} = $text->fontsize * $1 / 100;
+			}
+		}
+	} elsif( $self->{preskip} =~ /(\d+)%/ ) {
+		$self->{preskip} = $text->fontsize * $1 / 100;
+	}
 	$self->{postskip} = exists $style->{postskip} ? 
 		$style->{postskip} : $lineskip * $PDFJ::Default{ParaPostSkipRatio};
+	if( ref($self->{postskip}) eq 'HASH' ) {
+		for my $key(keys %{$self->{postskip}}) {
+			if( $self->{postskip}{$key} =~ /(\d+)%/ ) {
+				$self->{postskip}{$key} = $text->fontsize * $1 / 100;
+			}
+		}
+	} elsif( $self->{postskip} =~ /(\d+)%/ ) {
+		$self->{postskip} = $text->fontsize * $1 / 100;
+	}
 	my $labeltext = $style->{labeltext};
 	my $firstminindent = 0;
 	if( $labeltext ) {
-		if( UNIVERSAL::isa($labeltext, 'PDFJ::Showable') ) {
+		if( PDFJ::Util::objisa($labeltext, 'PDFJ::Showable') ) {
 			$self->{labelobj} = $labeltext;
 		} elsif( ref($labeltext) eq 'CODE' ) {
 			$self->{labelobj} = &$labeltext();
@@ -3087,50 +4456,78 @@ sub new {
 				[@{$style->{endindent}}] :
 				[$style->{endindent}] :
 			[0];
-	my @lines = $text->_fold($self->linesizes, $style->{align});
+	$self->{align} = 
+		exists $style->{align} ?
+			ref($style->{align}) eq 'ARRAY' ?
+				[@{$style->{align}}] :
+				[$style->{align}] :
+			[0];
+	my @lines = $text->_fold($self);
 	$self->{lines} = \@lines;
 	$self;
 }
 
 sub text { $_[0]->{text} }
 sub linesnum { scalar(@{$_[0]->{lines}}) }
-sub line { $_[0]->{lines}->[$_[1]] }
+sub line { 
+	my($self, $line) = @_;
+	while( $line >= $self->linesnum ) {
+		$line -= $self->linesnum;
+	}
+	while( $line < 0 ) {
+		$line += $self->linesnum;
+	}
+	$self->{lines}->[$line];
+}
+sub fixedsize {
+	my($self, $line) = @_;
+	my(undef, $start, $count, $shift, $fixedglues) = @{$self->line($line)};
+	($self->text->fixsize($start, $count, $fixedglues), $shift);
+}
 sub labelsize { $_[0]->{style}->{labelsize} || 0 }
 sub labelskip { $_[0]->{style}->{labelskip} || 0 }
 sub beginpadding { $_[0]->{style}->{beginpadding} || 0 }
-sub beginindents { scalar @{$_[0]->{beginindent}} }
-sub beginindent { 
-	my($self, $idx) = @_;
-	my $count = @{$self->{beginindent}};
-	if( $idx < $count ) {
-		$self->{beginindent}[$idx];
+sub _getsetarray { 
+	my($self, $name, $idx, $value) = @_;
+	my $count = @{$self->{$name}};
+	if( defined $value ) {
+		if( $idx > $count ) {
+			my $lastvalue = $self->{$name}[$count - 1];
+			for( my $j = $count; $j < $idx; $j++ ) {
+				$self->{$name}[$j] = $lastvalue;
+			}
+		}
+		my @values = ref($value) eq 'ARRAY' ? @$value : ($value);
+		for( my $j = 0; $j < @values; $j++ ) {
+			$self->{$name}[$idx + $j] = $values[$j];
+		}
 	} else {
-		$self->{beginindent}[$count - 1];
+		if( $idx < $count ) {
+			$self->{$name}[$idx];
+		} else {
+			$self->{$name}[$count - 1];
+		}
 	}
 }
-sub endindents { scalar @{$_[0]->{endindent}} }
+sub beginindent { 
+	my $self = shift;
+	$self->_getsetarray('beginindent', @_);
+}
 sub endindent { 
-	my($self, $idx) = @_;
-	my $count = @{$self->{endindent}};
-	if( $idx < $count ) {
-		$self->{endindent}[$idx];
-	} else {
-		$self->{endindent}[$count - 1];
-	}
+	my $self = shift;
+	$self->_getsetarray('endindent', @_);
+}
+sub align { 
+	my $self = shift;
+	$self->_getsetarray('align', @_);
 }
 sub _size { $_[0]->{style}{size} }
-sub linesizes { 
-	my($self) = @_;
-	my @linesizes;
-	my $count = $self->beginindents > $self->endindents ? 
-		$self->beginindents :
-		$self->endindents;
-	for( my $j = 0; $j < $count; $j++ ) {
-		push @linesizes, $self->_size - $self->beginpadding - $self->labelsize - 
-			$self->beginindent($j) - $self->endindent($j);
-	}
-	\@linesizes;
+sub linesize {
+	my($self, $idx) = @_;
+	$self->_size - $self->beginpadding - $self->labelsize - 
+			$self->beginindent($idx) - $self->endindent($idx);
 }
+
 sub linefeed { $_[0]->{linefeed} }
 sub preskip { $_[0]->{preskip} || 0 }
 sub postskip { $_[0]->{postskip} || 0 }
@@ -3150,34 +4547,84 @@ sub breakable {
 
 sub _linessize {
 	my($self) = @_;
-	$self->linesnum ? 
-		$self->text->fontsize + ($self->linesnum - 1) * $self->linefeed : 0;
+	if( $self->linesnum ) {
+		if( defined $self->{lineskipmin} ) {
+			my $size = $self->text->fontsize * $self->linesnum;
+			if( $self->linesnum > 1 ) {
+				for my $line(@{$self->{lines}}[1..($self->linesnum - 1)]) {
+					$size += $line->{PreSkip};
+				}
+			}
+			if( $self->{objinbounds} ) {
+				$size += $self->{lines}[0]{PreAOLS};
+				$size += $self->{lines}[$#{$self->{lines}}]{PostAOLS};
+			}
+			$size;
+		} else {
+			$self->text->fontsize + ($self->linesnum - 1) * $self->linefeed;
+		}
+	} else {
+		0;
+	}
 }
 
 sub break {
-	my($self, @sizes) = @_;
+	my($self, $sizes)
+		= PDFJ::Util::listargs2ref(1, 0, 
+			PDFJ::Util::methodargs([qw(sizes)], @_));
+	my @sizes = @$sizes;
 	my $unbreakable = $self->nobreak;
 	my $lastsize = $sizes[$#sizes];
 	my @result;
 	my @lines = @{$self->{lines}};
 	my @beginindents = @{$self->{beginindent}};
 	my @endindents = @{$self->{endindent}};
+	my $fontsize = $self->text->fontsize;
 	my $second;
 	while( @lines ) {
 		my $size = @sizes ? shift(@sizes) : $lastsize;
-		my $count = $unbreakable ? 
-			($size < $self->_linessize ? 0 : scalar(@lines)) :
-			($size < $self->text->fontsize ? 0 : 
-			int(($size - $self->text->fontsize) / $self->linefeed) + 1);
+		my $firstsize = $fontsize;
+		if( $self->{objinbounds} ) {
+			$firstsize += $lines[0]{PreAOLS};
+		}
+		my $count;
+		if( $unbreakable ) {
+			$count = $size < $self->_linessize ? 0 : scalar(@lines);
+		} elsif( $size < $firstsize ) {
+			$count = 0;
+		} elsif( defined $self->{lineskipmin} ) {
+			$count = 1;
+			my $tmpsize = $firstsize;
+			while( $count < @lines ) {
+				my $linefeed = $fontsize + $lines[$count]{PreSkip};
+				my $postaols = $self->{objinbounds} ? 
+					$lines[$count]{PostAOLS} : 0;
+				if( $tmpsize + $linefeed + $postaols <= $size ) {
+					$tmpsize += $linefeed;
+					$count++;
+				} else {
+					last;
+				}
+			}
+		} else { 
+			$count = 
+				int(($size - $self->text->fontsize) / $self->linefeed) + 1;
+		}
 		return if !$count && !@sizes;
 		my @blines = splice @lines, 0, $count;
 		my @bbi = splice @beginindents, 0, $count;
 		@beginindents = ($bbi[$#bbi]) unless @beginindents;
 		my @bei = splice @endindents, 0, $count;
 		@endindents = ($bei[$#bei]) unless @endindents;
-		my $bpara = bless {text => $self->{text}, 
+		my $bpara = bless {
+				typename => $self->{typename},
+				text => $self->{text}, 
 				style => $self->{style},
-				linefeed => $self->{linefeed}, preskip => $self->{preskip},
+				linefeed => $self->{linefeed}, 
+				lineskip => $self->{lineskip},
+				lineskipmin => $self->{lineskipmin},
+				objinbounds => $self->{objinbounds},
+				preskip => $self->{preskip},
 				postskip => $self->{postskip},
 				beginindent => \@bbi, endindent => \@bei,
 				labelobj => ($second ? undef : $self->{labelobj}),
@@ -3242,12 +4689,26 @@ sub size {
 	}
 }
 
+sub blockalign {  
+	my($self) = @_;
+	$self->{style}{blockalign};
+}
+
+sub onshow { $_[0]->{style}{onshow} }
+
 sub _show {
 	my($self, $page, $x, $y) = @_;
+	if( $self->{objinbounds} ) {
+		my $preaols = $self->line(0)->{PreAOLS};
+		if( $self->text->style->{font}{direction} eq 'H' ) {
+			$y -= $preaols;
+		} else {
+			$x -= $preaols;
+		}
+	}
 	for( my $j = 0; $j < $self->linesnum; $j++ ) {
 		($x, $y) = $self->_showline($page, $x, $y, $j);
 	}
-	($x, $y);
 }
 
 sub _showline {
@@ -3259,7 +4720,6 @@ sub _showline {
 	my $fixedglues = $self->line($line)->{FixedGlues};
 	my $shift = $self->line($line)->{Shift} + $self->beginpadding + 
 		$self->labelsize + $self->beginindent($line);
-	my $linefeed = $self->linefeed;
 	my $text = $self->text;
 	my $tstyle = $text->style;
 	croak "no font specification" unless exists $tstyle->{font};
@@ -3269,7 +4729,12 @@ sub _showline {
 			($x, $y - $self->beginpadding);
 		$self->{labelobj}->show($page, $lx, $ly);
 	}
-	my($nextx, $nexty);
+	my($nextx, $nexty, $linefeed);
+	if( defined $self->{lineskipmin} && $line < $self->linesnum - 1 ) {
+		$linefeed = $text->fontsize + $self->line($line + 1)->{PreSkip};
+	} else {
+		$linefeed = $self->linefeed;
+	}
 	if( $direction eq 'H' ) {
 		($nextx, $nexty) = ($x, $y - $linefeed);
 		$x += $shift;
@@ -3295,19 +4760,7 @@ sub new {
 	bless \$class, $class;
 }
 
-#--------------------------------------------------------------------------
-package PDFJ::BlockSkip;
-use Carp;
-use strict;
-use vars qw(@ISA);
-@ISA = qw(PDFJ::BlockElement);
-
-sub new {
-	my($class, $skip) = @_;
-	bless {skip => $skip}, $class;
-}
-
-sub size { $_[0]->{skip} || 0 }
+sub typename { 'newblock' }
 
 #--------------------------------------------------------------------------
 package PDFJ::BlockStyle;
@@ -3322,238 +4775,74 @@ sub BStyle { PDFJ::BlockStyle->new(@_) }
 package PDFJ::Block;
 use Carp;
 use strict;
-use vars qw(@ISA);
+use vars qw(@ISA %Dispatch %Require);
 @ISA = qw(PDFJ::Showable);
+
+%Dispatch = (
+	H => 'PDFJ::Block::Vector',
+	R => 'PDFJ::Block::Vector',
+	V => 'PDFJ::Block::Vector',
+	HV => 'PDFJ::Block::Matrix',
+	RV => 'PDFJ::Block::Matrix',
+	VH => 'PDFJ::Block::Matrix',
+	VR => 'PDFJ::Block::Matrix',
+	TV => 'PDFJ::Block::Tree',
+	TU => 'PDFJ::Block::Tree',
+	TH => 'PDFJ::Block::Tree',
+	TR => 'PDFJ::Block::Tree',
+);
+
+%Require = (
+	HV => 'PDFJ::Matrix',
+	RV => 'PDFJ::Matrix',
+	VH => 'PDFJ::Matrix',
+	VR => 'PDFJ::Matrix',
+	TV => 'PDFJ::Tree',
+	TU => 'PDFJ::Tree',
+	TH => 'PDFJ::Tree',
+	TR => 'PDFJ::Tree',
+);
 
 sub Block { PDFJ::Block->new(@_); }
 
 sub new {
-	my $class = shift;
-	my $direction = shift;
-	my $style = pop; # not shift
-	croak "block direction argument must be H or V or R"
-		unless $direction =~ /^H|V|R$/;
-	croak "block style argument must be a PDFJ::BlockStyle object"
-		unless UNIVERSAL::isa($style, 'PDFJ::BlockStyle');
-	my @objects = (@_ == 1 && ref($_[0]) eq 'ARRAY') ? @{$_[0]} : @_;
-	for( my $j = 0; $j < @objects; $j++ ) {
-		if( UNIVERSAL::isa($objects[$j], 'PDFJ::BlockElement') ) {
-			# OK
-		} elsif( $objects[$j] =~ /^\d+$/ ) {
-			$objects[$j] = PDFJ::BlockSkip->new($objects[$j]);
-		} else {
-			croak "illegal Block element: $objects[$j]"
-		}
+	my($class, $direction, $objects, $style)
+		= PDFJ::Util::listargs2ref(2, 1, 
+			PDFJ::Util::methodargs([qw(direction objects style)], @_));
+	my $dclass = $Dispatch{$direction}
+		or croak "unknown Block direction: $direction";
+	if( $Require{$direction} ) {
+		eval "require $Require{$direction}";
 	}
+	$style = PDFJ::BlockStyle->new($style) 
+		if $style && (!ref($style) || ref($style) eq 'HASH');
+	croak "block style argument must be a PDFJ::BlockStyle object"
+		unless PDFJ::Util::objisa($style, 'PDFJ::BlockStyle');
+	my @objects = @$objects;
 	my $self = bless { direction => $direction, objects => \@objects, 
 		xpreshift => 0, xpostshift => 0, ypreshift => 0, ypostshift => 0, 
-		style => $style }, $class;
+		style => $style }, $dclass;
+	$self->typename($style->{typename}) if $style->{typename} ne '';
+	$self->_checkobjects;
 	$self->_calcsize;
 	$self->adjustwidth($style->{width}) if $style->{width};
 	$self->adjustheight($style->{height}) if $style->{height};
 	$self;
 }
 
-sub break {
-	my($self, @sizes) = @_;
-	my $unbreakable = $self->nobreak;
-	my $nofirstfloat = $self->nofirstfloat;
-	my $repeatheader = $self->repeatheader;
-	my $lastsize = $sizes[$#sizes];
-	my $direction = $self->{direction} eq 'V' ? 'V' : 'H';
-	my @result;
-	my @objects = @{$self->{objects}};
-	my @repeatheader = $repeatheader ? 
-			@objects[0..($repeatheader - 1)] : ();
-	my @reserve;
-	while( @objects || @reserve ) {
-		my $size = @sizes ? shift(@sizes) : $lastsize;
-		unshift @objects, splice(@reserve);
-		my @bobjects;
-		if( $unbreakable ) {
-			@bobjects = splice @objects if $size >= $self->size($direction);
-		} else {
-			my $bsize = $self->padding * 2;
-			while( $bsize < $size && @objects ) {
-				my $obj = $objects[0];
-				my $float = $obj->float;
-				if( $float && @reserve ) {
-					push @reserve, shift(@objects);
-					next;
-				}
-				if( $float eq 'b' && $nofirstfloat && !@result ) {
-					push @reserve, shift(@objects);
-					next;
-				}
-				my $inspos = _inspos(\@bobjects, $float);
-				my $skipsize = 0;
-				if( $inspos == 0 ) {
-					$skipsize = $obj->postskip + $bobjects[$inspos]->preskip 
-						if @bobjects;
-				} elsif( $inspos == @bobjects ) {
-					$skipsize = $bobjects[$inspos - 1]->postskip + $obj->preskip;
-				} else {
-					$skipsize = $obj->preskip + $obj->postskip;
-				}
-				my $osize = $obj->size($direction);
-				if( UNIVERSAL::isa($obj, 'PDFJ::NewBlock') ) {
-					shift(@objects);
-					last;
-				} elsif( $bsize + $skipsize + $osize <= $size ) {
-					splice @bobjects, $inspos, 0, shift(@objects);
-					$bsize += $skipsize + $osize;
-				} elsif( $obj->breakable($self->{direction}) ) {
-					my @bsizes = ($size - $bsize - $skipsize, 
-						map {$_ - $self->padding * 2} 
-						(@sizes ? (@sizes) : ($lastsize)));
-					my @parts = $obj->break(@bsizes);
-					if( @parts ) {
-						$obj = $parts[0];
-						my $osize = $obj->size($direction);
-						if( $osize ) {
-							$bsize += $skipsize + $osize;
-							shift @objects;
-							unshift @objects, @parts;
-							splice @bobjects, $inspos, 0, shift(@objects);
-						} else {
-							shift @parts;
-							shift @objects;
-							unshift @objects, @parts;
-						}
-						last;
-					} else {
-						return;
-					}
-				} else {
-					if( $float ) {
-						push @reserve, shift(@objects);
-					} else {
-						last;
-					}
-				}
-			}
-		}
-		while( @bobjects && $bobjects[$#bobjects]->postnobreak && @objects ) {
-			unshift @objects, pop(@bobjects);
-		}
-		return if !@bobjects && !@sizes;
-		if( $repeatheader && (@bobjects >= $repeatheader) && @objects ) {
-			unshift @objects, @repeatheader;
-		}
-		my $bobj;
-		%$bobj = %$self;
-		$bobj->{objects} = \@bobjects;
-		delete $bobj->{indents};
-		bless $bobj, ref($self);
-		$bobj->_calcsize;
-		push @result, $bobj;
-	}
-	@result;
-}
-
-sub _inspos { # NOT method
-	my($objects, $float) = @_;
-	my $inspos;
-	if( $float eq 'b' ) {
-		$inspos = 0;
-		while( $inspos < @$objects && $objects->[$inspos]->float eq 'b' ) {
-			$inspos++;
-		}
-	} elsif( $float eq 'e' ) {
-		$inspos = @$objects;
-	} else {
-		$inspos = @$objects;
-		while( $inspos > 0 && $objects->[$inspos - 1]->float eq 'e' ) {
-			$inspos--;
-		}
-	}
-	$inspos;
-}
-
-sub _calcsize {
+sub _checkobjects {
 	my($self) = @_;
-	my($width, $height) = (0, 0);
-	my $objnum = @{$self->{objects}};
-	my $adjust = $self->{style}{adjust};
-	my $align = $self->align;
-	if( $self->{direction} eq 'V' ) {
-		for( my $j = 0; $j < $objnum; $j++ ) {
-			my $obj = $self->{objects}->[$j];
-			if( $j > 0 ) {
-				$height += $self->{objects}->[$j-1]->postskip + $obj->preskip;
-			}
-			if( UNIVERSAL::isa($obj, 'PDFJ::Showable') ) {
-				$width = $width < $obj->width ? $obj->width : $width;
-				$height += $obj->height;
-			} elsif( UNIVERSAL::isa($obj, 'PDFJ::BlockElement') ) {
-				$height += $obj->size($self->{direction});
-			} else {
-				croak "illegal block element";
-			}
+	my $objects = $self->{objects};
+	for( my $j = 0; $j < @$objects; $j++ ) {
+		unless( PDFJ::Util::objisa($objects->[$j], 'PDFJ::BlockElement') ) {
+			croak "illegal Block element: $objects->[$j]"
 		}
-		if( $adjust ) {
-			for my $obj(@{$self->{objects}}) {
-				$obj->adjustwidth($width) if UNIVERSAL::isa($obj, 'PDFJ::Block');
-			}
-		}
-		my @indents;
-		if( $align =~ /c/ ) {
-			for( my $j = 0; $j < $objnum; $j++ ) {
-				my $obj = $self->{objects}->[$j];
-				if( UNIVERSAL::isa($obj, 'PDFJ::Showable') ) {
-					$indents[$j] = ($width - $obj->width) / 2;
-				}
-			}
-		} elsif( $align =~ /r/ ) {
-			for( my $j = 0; $j < $objnum; $j++ ) {
-				my $obj = $self->{objects}->[$j];
-				if( UNIVERSAL::isa($obj, 'PDFJ::Showable') ) {
-					$indents[$j] = $width - $obj->width;
-				}
-			}
-		}
-		$self->{indents} = \@indents;
-	} else {
-		for( my $j = 0; $j < $objnum; $j++ ) {
-			my $obj = $self->{objects}->[$j];
-			if( $j > 0 ) {
-				$width += $self->{objects}->[$j-1]->postskip + $obj->preskip;
-			}
-			if( UNIVERSAL::isa($obj, 'PDFJ::Showable') ) {
-				$height = $height < $obj->height ? $obj->height : $height;
-				$width += $obj->width;
-			} elsif( UNIVERSAL::isa($obj, 'PDFJ::BlockElement') ) {
-				$width += $obj->size($self->{direction});
-			} else {
-				croak "illegal block element";
-			}
-		}
-		if( $adjust ) {
-			for my $obj(@{$self->{objects}}) {
-				$obj->adjustheight($height) 
-					if UNIVERSAL::isa($obj, 'PDFJ::Block');
-			}
-		}
-		my @indents;
-		if( $align =~ /m/ ) {
-			for( my $j = 0; $j < $objnum; $j++ ) {
-				my $obj = $self->{objects}->[$j];
-				if( UNIVERSAL::isa($obj, 'PDFJ::Showable') ) {
-					$indents[$j] = ($height - $obj->height) / 2;
-				}
-			}
-		} elsif( $align =~ /b/ ) {
-			for( my $j = 0; $j < $objnum; $j++ ) {
-				my $obj = $self->{objects}->[$j];
-				if( UNIVERSAL::isa($obj, 'PDFJ::Showable') ) {
-					$indents[$j] = $height - $obj->height;
-				}
-			}
-		}
-		$self->{indents} = \@indents;
 	}
-	$self->{width} = $width;
-	$self->{height} = $height;
+}
+
+sub empty {
+	my($self) = @_;
+	!@{$self->{objects}};
 }
 
 sub padding { $_[0]->{style}{padding} || 0 }
@@ -3561,15 +4850,14 @@ sub padding { $_[0]->{style}{padding} || 0 }
 sub width { 
 	my($self) = @_;
 	$self->{width} + $self->padding * 2 
-		+ $self->{xpreshift} + $self->{xpostshift} 
-		+ ($self->direction eq 'H' ? 0 : $self->beginpadding);
+		+ $self->{xpreshift} + $self->{xpostshift};
 }
 sub height {
 	my($self) = @_;
 	$self->{height} + $self->padding * 2 
-		+ $self->{ypreshift} + $self->{ypostshift}
-		+ ($self->direction eq 'H' ? $self->beginpadding : 0);
+		+ $self->{ypreshift} + $self->{ypostshift};
 }
+
 sub size {
 	my($self, $direction) = @_; 
 	if( $direction eq 'H' ) {
@@ -3578,19 +4866,50 @@ sub size {
 		$self->height;
 	}
 }
+sub blockalign {  
+	my($self) = @_;
+	$self->{style}{blockalign};
+}
 sub left { 0 }
 sub right { $_[0]->width }
 sub top { 0 }
 sub bottom { - $_[0]->height }
-sub preskip { $_[0]->{style}{preskip} || 0 }
-sub postskip { $_[0]->{style}{postskip} || 0 }
+sub preskip { 
+	my $self = shift;
+	$self->{style}{preskip} || 0;
+}
+sub postskip { 
+	my $self = shift;
+	$self->{style}{postskip} || 0;
+}
+
 sub align { $_[0]->{style}{align} || "" }
 sub nobreak { $_[0]->{style}{nobreak} }
 sub postnobreak { $_[0]->{style}{postnobreak} }
 sub repeatheader { $_[0]->{style}{repeatheader} || 0 }
 sub float { $_[0]->{style}->{float} || "" }
 sub nofirstfloat { $_[0]->{style}{nofirstfloat} }
-sub beginpadding { $_[0]->{style}{beginpadding} || 0 }
+#sub beginpadding { $_[0]->{style}{beginpadding} || 0 }
+sub bfloatsep { 
+	my $tmp = $_[0]->{style}{bfloatsep};
+	if( defined $tmp ) {
+		$tmp = [$tmp] if ref($tmp) ne 'ARRAY';
+		for( my $j = ''; $j < @$tmp; $j++ ) {
+			$tmp->[$j]{floatsep} = "b$j" if $tmp->[$j];
+		}
+	}
+	$tmp;
+}
+sub efloatsep { 
+	my $tmp = $_[0]->{style}{efloatsep}; 
+	if( defined $tmp ) {
+		$tmp = [$tmp] if ref($tmp) ne 'ARRAY';
+		for( my $j = ''; $j < @$tmp; $j++ ) {
+			$tmp->[$j]{floatsep} = "e$j" if $tmp->[$j];
+		}
+	}
+	$tmp;
+}
 sub direction { $_[0]->{direction} }
 sub breakable {
 	my($self, $blockdirection) = @_;
@@ -3600,7 +4919,8 @@ sub breakable {
 }
 
 sub adjustwidth {
-	my($self, $size) = @_;
+	my($self, $size)
+		= PDFJ::Util::methodargs([qw(size)], @_);
 	return unless $size;
 	my $align = $self->align;
 	return $self if $self->width >= $size;
@@ -3617,7 +4937,8 @@ sub adjustwidth {
 }
 
 sub adjustheight {
-	my($self, $size) = @_;
+	my($self, $size)
+		= PDFJ::Util::methodargs([qw(size)], @_);
 	return unless $size;
 	my $align = $self->align;
 	return $self if $self->height >= $size;
@@ -3633,22 +4954,350 @@ sub adjustheight {
 	$self;
 }
 
-sub _show {
+sub colspan { $_[0]->{style}{colspan} || 1 }
+sub rowspan { $_[0]->{style}{rowspan} || 1 }
+
+sub onshow { $_[0]->{style}{onshow} }
+
+sub _showbox {
 	my($self, $page, $x, $y) = @_;
-	if( $self->direction eq 'H' ) {
-		$y -= $self->beginpadding;
-	} else {
-		$x += $self->beginpadding;
-	}
 	my $style = $self->{style};
 	if( $style->{withbox} ) {
 		my $withbox = $style->{withbox};
 		my $withboxstyle = $style->{withboxstyle};
 		my $shape = PDFJ::Shape->new;
-		$shape->box(0, 0, $self->width, - $self->height, $withbox, 
+		my($boxwidth, $boxheight) = ($self->width, $self->height);
+		$shape->box(0, 0, $boxwidth, - $boxheight, $withbox, 
 			$withboxstyle);
 		$shape->show($page, $x, $y);
 	}
+}
+
+#--------------------------------------------------------------------------
+package PDFJ::Block::Vector;
+use Carp;
+use strict;
+use vars qw(@ISA);
+@ISA = qw(PDFJ::Block);
+
+sub _checkobjects {
+	my($self) = @_;
+	my $objects = $self->{objects};
+	for( my $j = 0; $j < @$objects; $j++ ) {
+		if( PDFJ::Util::objisa($objects->[$j], 'PDFJ::BlockElement') ) {
+			# OK
+		} elsif( $objects->[$j] =~ /^\d+$/ ) {
+			$objects->[$j] = PDFJ::BlockSkip::BlockSkip($objects->[$j]);
+		} else {
+			croak "illegal Block element: $objects->[$j]"
+		}
+	}
+}
+
+# NOT method
+sub skipsize {
+	my($aobj, $bobj) = @_;
+	my $apostskip = $aobj->postskip;
+	my $postskip = ref($apostskip) eq 'HASH' ?
+		$apostskip->{$bobj->typename || 'default'} : $apostskip;
+	my $bpreskip = $bobj->preskip;
+	my $preskip = ref($bpreskip) eq 'HASH' ?
+		$bpreskip->{$aobj->typename || 'default'} : $bpreskip;
+	$postskip + $preskip;
+}
+
+sub preskip { 
+	my $self = shift;
+	my $preskip = $self->{style}{preskip} || 0;
+	$preskip = $self->{objects}[0]->preskip if $preskip eq 'c';
+	$preskip;
+}
+sub postskip { 
+	my $self = shift;
+	my $postskip = $self->{style}{postskip} || 0;
+	$postskip = $self->{objects}[$#{$self->{objects}}]->postskip 
+		if $postskip eq 'c';
+	$postskip;
+}
+
+sub break {
+	my($self, $sizes)
+		= PDFJ::Util::listargs2ref(1, 0, 
+			PDFJ::Util::methodargs([qw(sizes)], @_));
+	my @sizes = @$sizes;
+	my $unbreakable = $self->nobreak;
+	my $nofirstfloat = $self->nofirstfloat;
+	my $repeatheader = $self->repeatheader;
+	my $lastsize = $sizes[$#sizes];
+	my $direction = $self->{direction} eq 'V' ? 'V' : 'H';
+	my @result;
+	my @objects = @{$self->{objects}};
+	my $bfloatsep = $self->bfloatsep;
+	my $efloatsep = $self->efloatsep;
+	if( $bfloatsep && $efloatsep ) {
+		my $match = 0;
+		for my $obj(@$bfloatsep) {
+			if( grep {$_ eq $obj} @$efloatsep ) {
+				$match = 1;
+				last;
+			}
+		}
+		carp "bfloatsep and efloatsep must be different" if $match;
+	}
+	my @repeatheader = $repeatheader ? 
+			@objects[0..($repeatheader - 1)] : ();
+	my @reserve;
+	while( @objects || @reserve ) {
+		my $size = @sizes ? shift(@sizes) : $lastsize;
+		unshift @objects, splice(@reserve);
+		my @bobjects;
+		if( $unbreakable ) {
+			@bobjects = splice @objects if $size >= $self->size($direction);
+		} else {
+			my $bsize = $self->padding * 2;
+			while( $bsize < $size && @objects ) {
+				my $obj = $objects[0];
+				my $issep = 0;
+				my $float = $obj->float;
+				if( $float && @reserve ) {
+					push @reserve, shift(@objects);
+					next;
+				}
+				if( $float =~ /b/ && $nofirstfloat && !@result ) {
+					push @reserve, shift(@objects);
+					next;
+				}
+				my($inspos, $seppos, $needsep) = _inspos(\@bobjects, $float);
+				my $sepobj;
+				if( $needsep ) {
+					my($level) = $float =~ /(\d+)/;
+					$sepobj = $bfloatsep->[$level] 
+						if $bfloatsep && $float =~ /b/ && $level < @$bfloatsep;
+					$sepobj = $efloatsep->[$level]
+						if $efloatsep && $float =~ /e/ && $level < @$efloatsep;
+				}
+				if( $sepobj ) {
+					unshift @objects, $sepobj;
+					$obj = $sepobj;
+					$inspos = $seppos;
+					$issep = 1;
+				}
+				my $skipsize = 0;
+				if( $inspos == 0 ) {
+					$skipsize = skipsize($obj, $bobjects[$inspos])
+						if @bobjects;
+				} elsif( $inspos == @bobjects ) {
+					$skipsize = skipsize($bobjects[$inspos - 1], $obj);
+				} else {
+					$skipsize = skipsize($bobjects[$inspos - 1], $obj) +
+						skipsize($obj, $bobjects[$inspos]) - 
+						skipsize($bobjects[$inspos - 1], $bobjects[$inspos]);
+				}
+				my $osize = $obj->size($direction);
+				if( PDFJ::Util::objisa($obj, 'PDFJ::NewBlock') ) {
+					shift(@objects);
+					last if @bobjects;
+				} elsif( $bsize + $skipsize + $osize <= $size ) {
+					splice @bobjects, $inspos, 0, shift(@objects);
+					$bsize += $skipsize + $osize;
+				} elsif( $obj->breakable($self->{direction}) ) {
+					my @bsizes = ($size - $bsize - $skipsize, 
+						map {$_ - $self->padding * 2} 
+						(@sizes ? (@sizes) : ($lastsize)));
+					my @parts = $obj->break(@bsizes);
+					if( @parts ) {
+						$obj = $parts[0];
+						my $osize = $obj->size($direction);
+						my $empty = $obj->can('empty') && $obj->empty;
+						if( $osize && !$empty ) {
+							$bsize += $skipsize + $osize;
+							shift @objects;
+							unshift @objects, @parts;
+							splice @bobjects, $inspos, 0, shift(@objects);
+						} else {
+							shift @parts;
+							shift @objects;
+							unshift @objects, @parts;
+						}
+						last;
+					} else {
+						carp "$obj->break(@bsizes) fails";
+						return;
+					}
+				} else {
+					if( $float && !$issep ) {
+						push @reserve, shift(@objects);
+					} else {
+						last;
+					}
+				}
+			}
+		}
+		while( @bobjects && $bobjects[$#bobjects] && 
+			$bobjects[$#bobjects]->postnobreak && @objects ) {
+			unshift @objects, pop(@bobjects);
+		}
+		if( !@bobjects && !@sizes ) {
+			carp "break fails";
+			return;
+		}
+		if( @bobjects && $bobjects[0]->{floatsep} eq 'b' ) {
+			shift @bobjects;
+		}
+		if( @bobjects && $bobjects[$#bobjects]->{floatsep} eq 'e' ) {
+			pop @bobjects;
+		}
+		if( $repeatheader && (@bobjects >= $repeatheader) && @objects ) {
+			unshift @objects, @repeatheader;
+		}
+		my $bobj;
+		%$bobj = %$self;
+		$bobj->{objects} = \@bobjects;
+		delete $bobj->{indents};
+		bless $bobj, ref($self);
+		$bobj->_calcsize;
+		push @result, $bobj;
+	}
+	@result;
+}
+
+sub _inspos { # NOT method
+	my($objects, $float) = @_;
+	my($inspos, $seppos, $needsep);
+	if( $float =~ /b/ ) {
+		$inspos = 0;
+		while( $inspos < @$objects && ($objects->[$inspos]->float ge $float ||
+			$objects->[$inspos]->{floatsep} gt $float)) {
+			$inspos++;
+		}
+		unless( $inspos < @$objects && 
+			$objects->[$inspos]->{floatsep} eq $float ) {
+			$seppos = $inspos;
+			$needsep = 1;
+		}
+	} elsif( $float =~ /e/ ) {
+		$inspos = @$objects;
+		while( $inspos > 0 && ($objects->[$inspos - 1]->float ge $float ||
+			$objects->[$inspos - 1]->{floatsep} gt $float)) {
+			$inspos--;
+		}
+		unless( $inspos > 0 && $objects->[$inspos - 1]->{floatsep} eq $float ) {
+			$seppos = $inspos;
+			$needsep = 1;
+		}
+		$inspos = @$objects;
+		while( $inspos > 0 && ($objects->[$inspos - 1]->float gt $float ||
+			$objects->[$inspos - 1]->{floatsep} gt $float)) {
+			$inspos--;
+		}
+	} elsif( $float eq '' || $float eq 'h' ) {
+		$inspos = @$objects;
+		while( $inspos > 0 && ($objects->[$inspos - 1]->float =~ /e/ ||
+			$objects->[$inspos - 1]->{floatsep} =~ /e/)) {
+			$inspos--;
+		}
+	} else {
+		carp "unknown float spec '$float'";
+	}
+	($inspos, $seppos, $needsep);
+}
+
+sub _calcsize {
+	my($self) = @_;
+	my($width, $height) = (0, 0);
+	my $objnum = @{$self->{objects}};
+	my $adjust = $self->{style}{adjust};
+	my $align = $self->align;
+	if( $self->{direction} eq 'V' ) {
+		for( my $j = 0; $j < $objnum; $j++ ) {
+			my $obj = $self->{objects}->[$j];
+			if( $j > 0 ) {
+				$height += skipsize($self->{objects}->[$j-1], $obj);
+			}
+			if( PDFJ::Util::objisa($obj, 'PDFJ::Showable') ) {
+				my $owidth = $obj->width + $obj->blockalign;
+				$width = $width < $owidth ? $owidth : $width;
+				$height += $obj->height;
+			} elsif( PDFJ::Util::objisa($obj, 'PDFJ::BlockElement') ) {
+				$height += $obj->size($self->{direction});
+			} else {
+				croak "illegal block element";
+			}
+		}
+		if( $adjust ) {
+			for my $obj(@{$self->{objects}}) {
+				$obj->adjustwidth($width) if $obj->can('adjustwidth');
+			}
+		}
+		my @indents;
+		my $indentratio = ($align =~ /c/) ? 0.5 : ($align =~ /r/) ? 1 : 0;
+		for( my $j = 0; $j < $objnum; $j++ ) {
+			my $obj = $self->{objects}->[$j];
+			if( PDFJ::Util::objisa($obj, 'PDFJ::Showable') ) {
+				my $aib = $obj->blockalign;
+				if( $aib eq '' ) {
+					$indents[$j] = ($width - $obj->width) * $indentratio;
+				} elsif( $aib eq 'b' ) {
+					$indents[$j] = 0;
+				} elsif( $aib eq 'm' ) {
+					$indents[$j] = ($width - $obj->width) / 2;
+				} elsif( $aib eq 'e' ) {
+					$indents[$j] = $width - $obj->width;
+				} elsif( $aib =~ /\d/ ) {
+					$indents[$j] = $aib + 0;
+				}
+			}
+		}
+		$self->{indents} = \@indents;
+	} else {
+		for( my $j = 0; $j < $objnum; $j++ ) {
+			my $obj = $self->{objects}->[$j];
+			if( $j > 0 ) {
+				$width += skipsize($self->{objects}->[$j-1], $obj);
+			}
+			if( PDFJ::Util::objisa($obj, 'PDFJ::Showable') ) {
+				my $oheight = $obj->height + $obj->blockalign;
+				$height = $height < $oheight ? $oheight : $height;
+				$width += $obj->width;
+			} elsif( PDFJ::Util::objisa($obj, 'PDFJ::BlockElement') ) {
+				$width += $obj->size($self->{direction});
+			} else {
+				croak "illegal block element";
+			}
+		}
+		if( $adjust ) {
+			for my $obj(@{$self->{objects}}) {
+				$obj->adjustheight($height) if $obj->can('adjustheight');
+			}
+		}
+		my @indents;
+		my $indentratio = ($align =~ /m/) ? 0.5 : ($align =~ /b/) ? 1 : 0;
+		for( my $j = 0; $j < $objnum; $j++ ) {
+			my $obj = $self->{objects}->[$j];
+			if( PDFJ::Util::objisa($obj, 'PDFJ::Showable') ) {
+				my $aib = $obj->blockalign;
+				if( $aib eq '' ) {
+					$indents[$j] = ($height - $obj->height) * $indentratio;
+				} elsif( $aib eq 'b' ) {
+					$indents[$j] = 0;
+				} elsif( $aib eq 'm' ) {
+					$indents[$j] = ($height - $obj->height) / 2;
+				} elsif( $aib eq 'e' ) {
+					$indents[$j] = $height - $obj->height;
+				} elsif( $aib =~ /\d/ ) {
+					$indents[$j] = $aib + 0;
+				}
+			}
+		}
+		$self->{indents} = \@indents;
+	}
+	$self->{width} = $width;
+	$self->{height} = $height;
+}
+
+sub _show {
+	my($self, $page, $x, $y) = @_;
+	$self->_showbox($page, $x, $y);
 	$x += $self->padding + $self->{xpreshift};
 	$y -= $self->padding + $self->{ypreshift};
 	my $objnum = @{$self->{objects}};
@@ -3657,12 +5306,12 @@ sub _show {
 			my $obj = $self->{objects}->[$j];
 			my $indent = $self->{indents}->[$j] || 0;
 			if( $j > 0 ) {
-				$y -= $self->{objects}->[$j-1]->postskip + $obj->preskip;
+				$y -= skipsize($self->{objects}->[$j-1], $obj);
 			}
-			if( UNIVERSAL::isa($obj, 'PDFJ::Showable') ) {
+			if( PDFJ::Util::objisa($obj, 'PDFJ::Showable') ) {
 				$obj->show($page, $x + $indent, $y, 'tl');
 				$y -= $obj->height;
-			} elsif( UNIVERSAL::isa($obj, 'PDFJ::BlockElement') ) {
+			} elsif( PDFJ::Util::objisa($obj, 'PDFJ::BlockElement') ) {
 				$y -= $obj->size($self->{direction});
 			} elsif( $obj =~ /^\d+$/ ) {
 				$y -= $obj;
@@ -3675,12 +5324,12 @@ sub _show {
 			my $obj = $self->{objects}->[$j];
 			my $indent = $self->{indents}->[$j] || 0;
 			if( $j > 0 ) {
-				$x += $self->{objects}->[$j-1]->postskip + $obj->preskip;
+				$x += skipsize($self->{objects}->[$j-1], $obj);
 			}
-			if( UNIVERSAL::isa($obj, 'PDFJ::Showable') ) {
+			if( PDFJ::Util::objisa($obj, 'PDFJ::Showable') ) {
 				$obj->show($page, $x, $y - $indent, 'tl');
 				$x += $obj->width;
-			} elsif( UNIVERSAL::isa($obj, 'PDFJ::BlockElement') ) {
+			} elsif( PDFJ::Util::objisa($obj, 'PDFJ::BlockElement') ) {
 				$x += $obj->size($self->{direction});
 			} else {
 				croak "illegal block element";
@@ -3692,12 +5341,12 @@ sub _show {
 			my $obj = $self->{objects}->[$j];
 			my $indent = $self->{indents}->[$j] || 0;
 			if( $j > 0 ) {
-				$x -= $self->{objects}->[$j-1]->postskip + $obj->preskip;
+				$x -= skipsize($self->{objects}->[$j-1], $obj);
 			}
-			if( UNIVERSAL::isa($obj, 'PDFJ::Showable') ) {
+			if( PDFJ::Util::objisa($obj, 'PDFJ::Showable') ) {
 				$obj->show($page, $x, $y - $indent, 'tr');
 				$x -= $obj->width;
-			} elsif( UNIVERSAL::isa($obj, 'PDFJ::BlockElement') ) {
+			} elsif( PDFJ::Util::objisa($obj, 'PDFJ::BlockElement') ) {
 				$x -= $obj->size($self->{direction});
 			} else {
 				croak "illegal block element";
@@ -3716,20 +5365,28 @@ use vars qw(@ISA);
 
 sub new {
 	my($class, $docobj, $src, $pxwidth, $pxheight, $width, $height, $padding,
-		$colorspace) = @_;
+		$colorspace, $type) = @_;
 	my($ext) = $src =~ /([^\.]+)$/;
-#	croak "unknown image file extention: $ext" 
-#		unless $ext =~ /^jpe?g$/i;
+	$type ||= $ext;
 	if( $src =~ /^http:/i ) {
-		new_url($class, $docobj, $src, $pxwidth, $pxheight, $width, 
+		croak "unknown image file type: $type" 
+			unless $type =~ /^jpe?g$/i;
+		new_url_jpeg($class, $docobj, $src, $pxwidth, $pxheight, $width, 
 			$height, $padding, $colorspace);
 	} else {
-		new_file($class, $docobj, $src, $pxwidth, $pxheight, $width, 
-			$height, $padding, $colorspace);
+		if( $type =~ /^jpe?g$/i ) {
+			new_file_jpeg($class, $docobj, $src, $pxwidth, $pxheight, $width, 
+				$height, $padding, $colorspace);
+		} elsif( $type =~ /^png$/i ) {
+			new_file_png($class, $docobj, $src, 0, 0, $width, 
+				$height, $padding);
+		} else {
+			croak "unknown image file type: $type";
+		}
 	}
 }
 
-sub new_url {
+sub new_url_jpeg {
 	my($class, $docobj, $url, $pxwidth, $pxheight, $width, $height, $padding,
 		$colorspace) = @_;
 	$width ||= $pxwidth;
@@ -3762,7 +5419,7 @@ sub new_url {
 		height => $height, padding => $padding }, $class;
 }
 
-sub new_file {
+sub new_file_jpeg {
 	my($class, $docobj, $file, $pxwidth, $pxheight, $width, $height, $padding,
 		$colorspace) = @_;
 	$width ||= $pxwidth;
@@ -3786,6 +5443,16 @@ sub new_file {
 		Filter  => $filter,
 		Length   => length($encoded),
 	}, stream => $encoded));
+	$docobj->_registimage($name, $image);
+	bless { name => $name, image => $image, width => $width,
+		height => $height, padding => $padding }, $class;
+}
+
+sub new_file_png {
+	my($class, $docobj, $file, $pxwidth, $pxheight, $width, $height, $padding) 
+		= @_;
+	require PDFJ::PNG;
+	my($name, $image) = PDFJ::PNG::imagestream($docobj, $file);
 	$docobj->_registimage($name, $image);
 	bless { name => $name, image => $image, width => $width,
 		height => $height, padding => $padding }, $class;
@@ -3817,6 +5484,8 @@ sub setpadding {
 	$self->{padding} = $padding;
 }
 
+sub onshow {}
+
 sub _show {
 	my($self, $page, $x, $y) = @_;
 	$x += $self->padding;
@@ -3824,12 +5493,14 @@ sub _show {
 	my $width = $self->{width};
 	my $height = $self->{height};
 	my $name = $self->{name};
-	$page->addcontents("q $width 0 0 $height $x $y cm /$name Do Q");
+	$page->addcontents("q", numbers($width, 0, 0, $height, $x, $y), 
+		"cm /$name Do Q");
 	$page->useimage($self);
 }
 
 #--------------------------------------------------------------------------
 package PDFJ::Color;
+use PDFJ::Object;
 use Carp;
 use strict;
 
@@ -3837,48 +5508,68 @@ sub Color { PDFJ::Color->new(@_) }
 
 sub new {
 	my $class = shift;
-	my $self;
 	if( @_ == 1 ) {
-		my $value = $_[0];
-		if( $value =~ /^#([A-Fa-f0-9]{2})([A-Fa-f0-9]{2})([A-Fa-f0-9]{2})$/ ) {
-			my(@rgb) = map {oct("0x$_")/256} ($1,$2,$3);
-			$self = bless { type => 'rgb', value => \@rgb }, $class;
-		} else {
-			$self = bless { type => 'gray', value => $value }, $class;
-		}
+		new1($class, @_);
 	} elsif( @_ == 3 ) {
-		my @rgb = @_;
-		$self = bless { type => 'rgb', value => \@rgb }, $class;
+		new3($class, @_);
 	} else {
 		croak "Color arguments must be one or three";
 	}
+}
+
+sub new1 {
+	my($class, $value)
+		= PDFJ::Util::methodargs([qw(value)], @_);
+	#my $class = shift;
+	my $self;
+	if( ref($value) eq 'ARRAY' ) {
+		$self = bless { type => 'rgb', value => $value }, $class;
+	} elsif( $value =~ /^#([A-Fa-f0-9]{2})([A-Fa-f0-9]{2})([A-Fa-f0-9]{2})$/ ) {
+		my(@rgb) = map {oct("0x$_")/256} ($1,$2,$3);
+		$self = bless { type => 'rgb', value => \@rgb }, $class;
+	} else {
+		$self = bless { type => 'gray', value => $value }, $class;
+	}
 	$self;
+}
+
+sub new3 {
+	my($class, @rgb) = @_;
+	bless { type => 'rgb', value => \@rgb }, $class;
 }
 
 sub fill {
 	my($self) = @_;
 	if( $self->{type} eq 'gray' ) {
-		"$self->{value} g ";
+		(number($self->{value}), "g");
 	} else { # 'rgb'
-		my @rgb = @{$self->{value}};
-		"@rgb rg ";
+		(numbers(@{$self->{value}}), "rg");
 	}
 }
 
 sub stroke {
 	my($self) = @_;
 	if( $self->{type} eq 'gray' ) {
-		"$self->{value} G ";
+		(number($self->{value}), "G");
 	} else { # 'rgb'
-		my @rgb = @{$self->{value}};
-		"@rgb RG ";
+		(numbers(@{$self->{value}}), "RG");
+	}
+}
+
+sub numarray {
+	my($self) = @_;
+	if( $self->{type} eq 'gray' ) {
+		($self->{value});
+	} else { # 'rgb'
+		@{$self->{value}};
 	}
 }
 
 #--------------------------------------------------------------------------
 package PDFJ::ShapeStyle;
-use strict;
 use Carp;
+use strict;
+use PDFJ::Object;
 use vars qw(@ISA);
 @ISA = qw(PDFJ::Style);
 
@@ -3886,20 +5577,22 @@ sub SStyle { PDFJ::ShapeStyle->new(@_) }
 
 sub pdf {
 	my($self) = @_;
-	my $result = "";
-	$result .= $self->{fillcolor}->fill if $self->{fillcolor};
-	$result .= $self->{strokecolor}->stroke if $self->{strokecolor};
-	$result .= "$self->{linewidth} w " if $self->{linewidth};
+	my @result;
+	push @result, $self->{fillcolor}->fill if $self->{fillcolor};
+	push @result, $self->{strokecolor}->stroke if $self->{strokecolor};
+	push @result, number($self->{linewidth}), "w" if $self->{linewidth};
 	if( $self->{linedash} ) {
-		my($dash, $gap, $phase) = @{$self->{linedash}};
+		my($dash, $gap, $phase) = ref($self->{linedash}) eq 'ARRAY' ? 
+			@{$self->{linedash}} : split(/\s*,\s*/, $self->{linedash});
 		$phase ||= 0;
-		$result .= "[$dash $gap] $phase d ";
+		push @result, array([numbers($dash, $gap)]), number($phase), "d";
 	}
-	$result;
+	@result;
 }
 
 #--------------------------------------------------------------------------
 package PDFJ::Shape;
+use PDFJ::Object;
 use Carp;
 use strict;
 use vars qw(@ISA);
@@ -3908,9 +5601,10 @@ use vars qw(@ISA);
 sub Shape { PDFJ::Shape->new(@_) }
 
 sub new {
-	my($class, $style) = @_;
+	my($class, $style)
+		= PDFJ::Util::methodargs([qw(style)], @_);
 	my $self = bless 
-		{ left => 0, top => 0, right => 0, bottom => 0, pdf => "" }, $class;
+		{ left => 0, top => 0, right => 0, bottom => 0, pdf => [] }, $class;
 	$self->style($style) if $style;
 	$self;
 }
@@ -3926,15 +5620,21 @@ sub preskip { $_[0]->{style}{preskip} || 0 }
 sub postskip { $_[0]->{style}{postskip} || 0 }
 sub postnobreak { $_[0]->{style}{postnobreak} }
 sub float { $_[0]->{style}->{float} || "" }
-sub pdf { $_[0]->{pdf} }
+sub pdf { @{$_[0]->{pdf}} }
 
 sub size {
 	my($self, $direction) = @_; 
 	$direction eq 'H' ? $self->width : $self->height;
 }
 
+sub blockalign {  
+	my($self) = @_;
+	$self->{style}{blockalign};
+}
+
 sub setboundary {
-	my($self, $x, $y) = @_;
+	my($self, $x, $y)
+		= PDFJ::Util::methodargs([qw(x y)], @_);
 	if( $x < $self->{left} ) {
 		$self->{left} = $x;
 	} elsif( $x > $self->{right} ) {
@@ -3945,12 +5645,12 @@ sub setboundary {
 	} elsif( $y > $self->{top} ) {
 		$self->{top} = $y;
 	}
+	$self;
 }
 
 sub appendpdf {
-	my($self, $pdf) = @_;
-	$pdf .= " " unless $pdf =~ / $/;
-	$self->{pdf} .= $pdf;
+	my($self, @pdf) = @_;
+	push @{$self->{pdf}}, @pdf;
 	$self;
 }
 
@@ -3980,15 +5680,18 @@ sub show_link {
 	}
 }
 
+sub onshow { $_[0]->{style}{onshow} }
+
 sub _show {
 	my($self, $page, $x, $y) = @_;
 	$x += $self->padding;
 	$y += $self->padding;
-	my $stylepdf = "";
+	my @stylepdf;
 	if( $self->{style} ) {
-		$stylepdf = $self->{style}->pdf if UNIVERSAL::can($self->{style}, 'pdf');
+		@stylepdf = $self->{style}->pdf if UNIVERSAL::can($self->{style}, 'pdf');
 	}
-	$page->addcontents("q 1 0 0 1 $x $y cm $stylepdf $self->{pdf}");
+	$page->addcontents("q", numbers(1, 0, 0, 1, $x, $y), 
+		"cm", @stylepdf, $self->pdf);
 	if( $self->{objects} ) {
 		for my $objspec(@{$self->{objects}}) {
 			my($obj, @args) = @$objspec;
@@ -4001,8 +5704,11 @@ sub _show {
 
 sub style {
 	my($self, $style) = @_;
+	$style = PDFJ::ShapeStyle->new($style)
+		if $style && (!ref($style) || ref($style) eq 'HASH');
 	croak "shape style argument must be a PDFJ::ShapeStyle object"
-		unless UNIVERSAL::isa($style, 'PDFJ::ShapeStyle');
+		unless PDFJ::Util::objisa($style, 'PDFJ::ShapeStyle');
+	$self->typename($style->{typename}) if $style->{typename} ne '';
 	$self->{style} = $style;
 	$self;
 }
@@ -4021,19 +5727,19 @@ sub gstatepop {
 
 sub linewidth {
 	my($self, $w) = @_;
-	$self->appendpdf("$w w");
+	$self->appendpdf(number($w), "w");
 }
 
 sub linedash {
 	my($self, $dash, $gap, $phase) = @_;
 	$phase ||= 0;
-	$self->appendpdf("[$dash $gap] $phase d");
+	$self->appendpdf(array([numbers($dash, $gap)]), number($phase), "d");
 }
 
 sub ctm {
 	my($self, @array) = @_;
 	croak "ctm array must have 6 elements" unless @array == 6;
-	$self->appendpdf("@array cm");
+	$self->appendpdf(numbers(@array), "cm");
 }
 
 # Color operators
@@ -4041,35 +5747,35 @@ sub ctm {
 sub fillcolor {
 	my($self, $color) = @_;
 	croak "color argument must be a PDFJ::Color object"
-		unless UNIVERSAL::isa($color, 'PDFJ::Color');
+		unless PDFJ::Util::objisa($color, 'PDFJ::Color');
 	$self->appendpdf($color->fill);
 }
 
 sub strokecolor {
 	my($self, $color) = @_;
 	croak "color argument must be a PDFJ::Color object"
-		unless UNIVERSAL::isa($color, 'PDFJ::Color');
+		unless PDFJ::Util::objisa($color, 'PDFJ::Color');
 	$self->appendpdf($color->stroke);
 }
 
 sub fillgray {
 	my($self, $g) = @_;
-	$self->appendpdf("$g g");
+	$self->appendpdf(number($g), "g");
 }
 
 sub strokegray {
 	my($self, $g) = @_;
-	$self->appendpdf("$g G");
+	$self->appendpdf(number($g), "G");
 }
 
 sub fillrgb {
 	my($self, $r, $g, $b) = @_;
-	$self->appendpdf("$r $g $b rg");
+	$self->appendpdf(numbers($r, $g, $b), "rg");
 }
 
 sub strokergb {
 	my($self, $r, $g, $b) = @_;
-	$self->appendpdf("$r $g $b RG");
+	$self->appendpdf(numbers($r, $g, $b), "RG");
 }
 
 # Path segment operators
@@ -4078,7 +5784,7 @@ sub strokergb {
 sub moveto {
 	my($self, $x, $y) = @_;
 	$self->setboundary($x, $y);
-	$self->appendpdf("$x $y m");
+	$self->appendpdf(numbers($x, $y), "m");
 }
 
 # appends a straight line segment from the current point to (x, y).
@@ -4086,7 +5792,7 @@ sub moveto {
 sub lineto {
 	my($self, $x, $y) = @_;
 	$self->setboundary($x, $y);
-	$self->appendpdf("$x $y l");
+	$self->appendpdf(numbers($x, $y), "l");
 }
 
 # appends a Bezier curve to the path. The curve extends
@@ -4098,7 +5804,7 @@ sub curveto {
 	$self->setboundary($x1, $y1);
 	$self->setboundary($x2, $y2);
 	$self->setboundary($x3, $y3);
-	$self->appendpdf("$x1 $y1 $x2 $y2 $x3 $y3 c");
+	$self->appendpdf(numbers($x1, $y1, $x2, $y2, $x3, $y3), "c");
 }
 
 # omit 'v' and 'y'
@@ -4108,7 +5814,7 @@ sub rectangle {
 	my($self, $x, $y, $w, $h) = @_;
 	$self->setboundary($x, $y);
 	$self->setboundary($x + $w, $y + $h);
-	$self->appendpdf("$x $y $w $h re");
+	$self->appendpdf(numbers($x, $y, $w, $h), "re");
 }
 
 # closes the current subpath by appending a straight line segment
@@ -4142,6 +5848,12 @@ sub fill {
 	$self->appendpdf("f");
 }
 
+# fill and stroke
+sub fillstroke {
+	my $self = shift;
+	$self->appendpdf("B");
+}
+
 # fills the path using the even-odd rule
 sub fill2 {
 	my $self = shift;
@@ -4151,15 +5863,18 @@ sub fill2 {
 # Path macro
 
 sub line {
-	my($self, $x, $y, $w, $h, $style) = @_;
-	my $stylepdf;
-	$stylepdf = $style->pdf if $style;
+	my($self, $x, $y, $w, $h, $style)
+		= PDFJ::Util::methodargs([qw(x y w h style)], @_);
+	$style = PDFJ::ShapeStyle->new($style)
+		if $style && (!ref($style) || ref($style) eq 'HASH');
+	my @stylepdf;
+	@stylepdf = $style->pdf if $style;
 	my($x1, $y1, $x2, $y2) = ($x, $y, $x + $w, $y + $h);
 	$self->setboundary($x1, $y1);
 	$self->setboundary($x2, $y2);
-	$self->appendpdf("q $stylepdf") if $stylepdf;
-	$self->appendpdf("$x1 $y1 m $x2 $y2 l S");
-	$self->appendpdf("Q") if $stylepdf;
+	$self->appendpdf("q", @stylepdf) if @stylepdf;
+	$self->appendpdf(numbers($x1, $y1), "m", numbers($x2, $y2), "l S");
+	$self->appendpdf("Q") if @stylepdf;
 	$self;
 }
 
@@ -4188,10 +5903,13 @@ sub textrline {
 }
 
 sub box {
-	my($self, $x, $y, $w, $h, $spec, $style) = @_;
+	my($self, $x, $y, $w, $h, $spec, $style)
+		= PDFJ::Util::methodargs([qw(x y w h spec style)], @_);
 	$spec = "s" unless $spec;
-	my $stylepdf;
-	$stylepdf = $style->pdf if $style;
+	$style = PDFJ::ShapeStyle->new($style)
+		if $style && (!ref($style) || ref($style) eq 'HASH');
+	my @stylepdf;
+	@stylepdf = $style->pdf if $style;
 	my($r);
 	if( $spec =~ s/r(\d+)// ) {
 		$r = $1;
@@ -4207,31 +5925,31 @@ sub box {
 	$self->setboundary($x, $y);
 	$self->setboundary($x + $w, $y + $h);
 	if( $spec ne 'n' ) {
-		$self->appendpdf("q $stylepdf") if $stylepdf;
+		$self->appendpdf("q", @stylepdf) if @stylepdf;
 		if( $r ) {
 			my $bz = $r * 0.55228475;
 			my @work = (
-				$x+$w,        $y+$h-$r,      'm',
-				$x+$w,        $y+$h-$r+$bz,
-				$x+$w-$r+$bz, $y+$h,
-				$x+$w-$r,     $y+$h,         'c',
-				$x+$r,        $y+$h,         'l',
-				$x+$r-$bz,    $y+$h,
-				$x,           $y+$h-$r+$bz,
-				$x,           $y+$h-$r,      'c',
-				$x,           $y+$r,         'l',
-				$x,           $y+$r-$bz,
-				$x+$r-$bz,    $y,
-				$x+$r,        $y,            'c',
-				$x+$w-$r,     $y,            'l',
-				$x+$w-$r+$bz, $y,
-				$x+$w,        $y+$r-$bz,
-				$x+$w,        $y+$r,         'c',
-				$x+$w,        $y+$h-$r,      'l'
+				numbers($x+$w,        $y+$h-$r),      'm',
+				numbers($x+$w,        $y+$h-$r+$bz),
+				numbers($x+$w-$r+$bz, $y+$h),
+				numbers($x+$w-$r,     $y+$h),         'c',
+				numbers($x+$r,        $y+$h),         'l',
+				numbers($x+$r-$bz,    $y+$h),
+				numbers($x,           $y+$h-$r+$bz),
+				numbers($x,           $y+$h-$r),      'c',
+				numbers($x,           $y+$r),         'l',
+				numbers($x,           $y+$r-$bz),
+				numbers($x+$r-$bz,    $y),
+				numbers($x+$r,        $y),            'c',
+				numbers($x+$w-$r,     $y),            'l',
+				numbers($x+$w-$r+$bz, $y),
+				numbers($x+$w,        $y+$r-$bz),
+				numbers($x+$w,        $y+$r),         'c',
+				numbers($x+$w,        $y+$h-$r),      'l'
 			);
-			$self->appendpdf("@work ");
+			$self->appendpdf(@work);
 		} else {
-			$self->appendpdf("$x $y m $x $y $w $h re ");
+			$self->appendpdf(numbers($x, $y), "m", numbers($x, $y, $w, $h), "re");
 		}
 		if( $spec eq 'sf' ) {
 			$self->appendpdf("B");
@@ -4256,7 +5974,7 @@ sub box {
 		} else {
 			croak "illegal strokefill argument: $spec";
 		}
-		$self->appendpdf("Q") if $stylepdf;
+		$self->appendpdf("Q") if @stylepdf;
 	}
 	if( $style && $style->{link} ) {
 		$self->add_link([$x, $y, $x + $w, $y + $h], $style->{link});
@@ -4289,16 +6007,20 @@ sub textbox {
 }
 
 sub circle {
-	my($self, $x, $y, $r, $spec, $arcarea, $style) = @_;
+	my($self, $x, $y, $r, $spec, $arcarea, $style)
+		= PDFJ::Util::methodargs([qw(x y r spec arcarea style)], @_);
 	$self->ellipse($x, $y, $r, $r, $spec, $arcarea, $style);
 }
 
 sub ellipse {
-	my($self, $x, $y, $xr, $yr, $spec, $arcarea, $style) = @_;
+	my($self, $x, $y, $xr, $yr, $spec, $arcarea, $style)
+		= PDFJ::Util::methodargs([qw(x y xr yr spec arcarea style)], @_);
 	$spec = "s" unless $spec;
-	my $stylepdf;
-	$stylepdf = $style->pdf if $style;
-	$self->appendpdf("q $stylepdf") if $stylepdf;
+	$style = PDFJ::ShapeStyle->new($style)
+		if $style && (!ref($style) || ref($style) eq 'HASH');
+	my @stylepdf;
+	@stylepdf = $style->pdf if $style;
+	$self->appendpdf("q", @stylepdf) if @stylepdf;
 	my $xbz = $xr * 0.55228475;
 	my $ybz = $yr * 0.55228475;
 	my @pt = (
@@ -4313,16 +6035,21 @@ sub ellipse {
 		$arcarea %= 4;
 		$self->setboundary(@pt[$arcarea * 6, $arcarea * 6 + 1]);
 		$self->setboundary(@pt[$arcarea * 6 + 6, $arcarea * 6 + 7]);
-		$self->appendpdf(join(' ',splice(@pt, $arcarea * 6, 2))." m ");
-		$self->appendpdf(join(' ',splice(@pt, $arcarea * 6, 6))." c ");
+		if( $spec =~ /f/ ) {
+			$self->appendpdf(numbers($x, $y), "m");
+			$self->appendpdf(numbers(splice(@pt, $arcarea * 6, 2)), "l");
+		} else {
+			$self->appendpdf(numbers(splice(@pt, $arcarea * 6, 2)), "m");
+		}
+		$self->appendpdf(numbers(splice(@pt, $arcarea * 6, 6)), "c");
 	} else {
 		$self->setboundary($x - $xr, $y - $yr);
 		$self->setboundary($x + $xr, $y + $yr);
-		$self->appendpdf(join(' ',splice(@pt, 0, 2))." m ");
-		$self->appendpdf(join(' ',splice(@pt, 0, 6))." c ");
-		$self->appendpdf(join(' ',splice(@pt, 0, 6))." c ");
-		$self->appendpdf(join(' ',splice(@pt, 0, 6))." c ");
-		$self->appendpdf(join(' ',splice(@pt, 0, 6))." c ");
+		$self->appendpdf(numbers(splice(@pt, 0, 2)), "m");
+		$self->appendpdf(numbers(splice(@pt, 0, 6)), "c");
+		$self->appendpdf(numbers(splice(@pt, 0, 6)), "c");
+		$self->appendpdf(numbers(splice(@pt, 0, 6)), "c");
+		$self->appendpdf(numbers(splice(@pt, 0, 6)), "c");
 	}
 	if( $spec eq 'sf' ) {
 		$self->appendpdf("B");
@@ -4331,25 +6058,29 @@ sub ellipse {
 	} elsif( $spec eq 'f' ) {
 		$self->appendpdf("f");
 	}
-	$self->appendpdf("Q") if $stylepdf;
+	$self->appendpdf("Q") if @stylepdf;
 	$self;
 }
 
 sub polygon {
-	my($self, $coords, $spec, $style) = @_;
+	my($self, $coords, $spec, $style)
+		= PDFJ::Util::methodargs([qw(coords spec style)], @_);
 	croak "coords argument must be an array ref"
 		unless ref($coords) eq 'ARRAY';
 	croak "coords argument must have even elements"
 		if @$coords % 2;
 	my @work;
 	for( my $j = 0; $j < @$coords; $j += 2 ) {
-		push @work, $coords->[$j], $coords->[$j + 1];
+		push @work, numbers($coords->[$j], $coords->[$j + 1]);
 		push @work, ($j == 0) ? 'm' : 'l';
+		$self->setboundary($coords->[$j], $coords->[$j + 1]);
 	}
-	my $stylepdf;
-	$stylepdf = $style->pdf if $style;
-	$self->appendpdf("q $stylepdf") if $stylepdf;
-	$self->appendpdf("@work ");
+	$style = PDFJ::ShapeStyle->new($style)
+		if $style && (!ref($style) || ref($style) eq 'HASH');
+	my @stylepdf;
+	@stylepdf = $style->pdf if $style;
+	$self->appendpdf("q", @stylepdf) if @stylepdf;
+	$self->appendpdf(@work);
 	if( $spec eq 'sf' ) {
 		$self->appendpdf("B");
 	} elsif( $spec eq 's' ) {
@@ -4357,14 +6088,236 @@ sub polygon {
 	} elsif( $spec eq 'f' ) {
 		$self->appendpdf("f");
 	}
-	$self->appendpdf("Q") if $stylepdf;
+	$self->appendpdf("Q") if @stylepdf;
+	$self;
+}
+
+sub arc {
+	my($self, $x, $y, $r, $start, $end, $spec, $style)
+		= PDFJ::Util::methodargs([qw(x y r start end spec style)], @_);
+	croak "same start and end for arc" if $start == $end;
+	$spec = "s" unless $spec;
+	$style = PDFJ::ShapeStyle->new($style)
+		if $style && (!ref($style) || ref($style) eq 'HASH');
+	my @stylepdf;
+	@stylepdf = $style->pdf if $style;
+	$self->appendpdf("q", @stylepdf) if @stylepdf;
+	($start, $end) = ($end, $start) if $start > $end;
+	my($x0, $y0) = ($x + $r * cos($start), $y + $r * sin($start));
+	my $ws = $start;
+	my @coords;
+	while( $ws < $end ) {
+		my $we = $ws + 1 < $end ? $ws + 1 : $end;
+		my $a = $we - $ws;
+		my $as = atan2(4 - 4 * cos($a / 2), 3 * sin($a / 2));
+		my $rs = $r / cos($as);
+		my($x1, $y1) = ($x + $rs * cos($ws + $as), $y + $rs * sin($ws + $as));
+		my($x2, $y2) = ($x + $rs * cos($we - $as), $y + $rs * sin($we - $as));
+		my($x3, $y3) = ($x + $r * cos($we), $y + $r * sin($we));
+		push @coords, [$x1, $y1, $x2, $y2, $x3, $y3];
+		$ws = $we;
+	}
+	if( $spec ne 'a' ) {
+		$self->moveto($x, $y);
+		$self->lineto($x0, $y0);
+	} else {
+		$self->moveto($x0, $y0);
+	}
+	for my $coords(@coords) {
+		$self->curveto(@$coords);
+	}
+	if( $spec ne 'a' ) {
+		$self->lineto($x, $y);
+	}
+	if( $spec eq 'f' ) {
+		$self->fill;
+	} elsif( $spec eq 'a' || $spec eq 's' ) {
+		$self->stroke;
+	} elsif( $spec eq 'sf' ) {
+		$self->fillstroke;
+	}
+	$self->appendpdf("Q") if @stylepdf;
 	$self;
 }
 
 sub obj {
-	my($self, $obj, @showargs) = @_;
-	$self->appendobj($obj, @showargs);
+	my($self, $obj, $showargs)
+		= PDFJ::Util::listargs2ref(2, 0, 
+			PDFJ::Util::methodargs([qw(obj showargs)], @_));
+	my($x, $y, $align, @trans) = @$showargs;
+	my @m = PDFJ::Util::transmatrix($x, $y, @trans);
+	if( $align ) {
+		if( $align =~ /l/ ) {
+			$x -= $obj->left;
+		} elsif( $align =~ /r/ ) {
+			$x -= $obj->right;
+		} elsif( $align =~ /c/ ) {
+			$x -= ($obj->left + $obj->right) / 2;
+		}
+		if( $align =~ /t/ ) {
+			$y -= $obj->top;
+		} elsif( $align =~ /b/ ) {
+			$y -= $obj->bottom;
+		} elsif( $align =~ /m/ ) {
+			$y -= ($obj->top + $obj->bottom) / 2;
+		}
+	}
+	my @pts = (
+		[$x + $obj->left, $y + $obj->top],
+		[$x + $obj->right, $y + $obj->bottom],
+		);
+	if( @m ) {
+		@pts = map {[$m[0] * $_->[0] + $m[2] * $_->[1] + $m[4], 
+			$m[1] * $_->[0] + $m[3] * $_->[1] + $m[5]]} @pts;
+	}
+	for(@pts) {
+		$self->setboundary($_->[0], $_->[1]);
+	}
+	$self->appendobj($obj, @$showargs);
 	$self;
+}
+
+#--------------------------------------------------------------------------
+package PDFJ::MiniPage;
+use PDFJ::Object;
+use Carp;
+use strict;
+use vars qw(@ISA);
+@ISA = qw(PDFJ::Showable);
+
+sub new {
+	my($class, $docobj, $width, $height, $padding, $opacity) = @_;
+	my $num = $docobj->_nextxobjnum;
+	my $name = "X$num";
+	my $xobject = $docobj->indirect(contents_stream(dictionary => {
+		Type => name('XObject'),
+		Subtype => name('Form'),
+		FormType => 1,
+		Name => name($name),
+		BBox => [0, 0, $width, $height],
+		Matrix => [1, 0, 0, 1, 0, 0],
+		Resources => {ProcSet => [name('PDF'), name('Text')], Font => {}},
+		}, stream => []));
+	if( $opacity ne '' ) {
+		$xobject->dictionary->get('Resources')->set(ExtGState => {R0 => 
+			{Type => name('ExtGState'), CA => $opacity, ca => $opacity,
+			AIS => bool(0)}});
+		$xobject->append("/R0 gs ");
+	}
+	$docobj->_registxobj($name, $xobject);
+	my $self = bless {
+		name => $name, 
+		xobject => $xobject, 
+		width => $width,
+		height => $height, 
+		padding => $padding, 
+		docobj => $docobj, 
+		layer => 0,
+		opacity => $opacity,
+		}, $class;
+	$self;
+}
+
+sub xobject { $_[0]->{xobject} }
+
+sub width { $_[0]->{width} + $_[0]->padding * 2 }
+sub height { $_[0]->{height} + $_[0]->padding * 2 }
+sub padding { $_[0]->{padding} || 0 }
+sub left { 0 }
+sub right { $_[0]->width }
+sub top { $_[0]->height }
+sub bottom { 0 }
+
+sub size {
+	my($self, $direction) = @_; 
+	$direction eq 'H' ? $self->width : $self->height;
+}
+
+sub setpadding {
+	my($self, $padding) = @_;
+	$self->{padding} = $padding;
+}
+
+sub onshow {}
+
+sub _show {
+	my($self, $page, $x, $y) = @_;
+	$x += $self->padding;
+	$y += $self->padding;
+	my $width = $self->{width};
+	my $height = $self->{height};
+	my $name = $self->{name};
+	$page->addcontents("q", numbers(1, 0, 0, 1, $x, $y), 
+		"cm /$name Do Q");
+	$page->usexobject($self);
+}
+
+sub docobj {
+	my($self) = @_;
+	$self->{docobj};
+}
+
+sub getlayer {
+	my($self) = @_;
+	$self->{layer};
+}
+
+sub addcontents {
+	my($self, @str) = @_;
+	#my @tmp = map {($_, " ")} @str;
+	my @tmp;
+	my $lasttype;
+	for my $str(@str) {
+		my $type = ref($str) ? '' :
+			($str =~ /^\(/ && $str =~ /\)$/) ? 'l' :
+			($str =~ /^</ && $str =~ />$/) ? 'h' : '';
+		if( $type && $type eq $lasttype ) {
+			$tmp[$#tmp] = substr($tmp[$#tmp], 0, length($tmp[$#tmp]) - 1) . 
+				substr($str, 1);
+		} else {
+			push @tmp, " " if @tmp;
+			push @tmp, $str;
+		}
+		$lasttype = $type;
+	}
+	push @tmp, " " if @tmp;
+	$self->xobject->append(\@tmp, $self->getlayer);
+}
+
+sub layer {
+	my($self, $layer)
+		= PDFJ::Util::methodargs([qw(layer)], @_);
+	$self->{layer} = $layer;
+	$self;
+}
+
+sub setattr {}
+sub dest {}
+sub add_link {}
+
+sub usefonts {
+	my($self, @names) = @_;
+	my $docobj = $self->docobj;
+	$docobj->_usefonts(@names);
+	my $resources = $self->xobject->dictionary->get('Resources');
+	for my $name(@names) {
+		$resources->get('Font')->set($name, $docobj->_font($name));
+	}
+}
+
+sub useimage {
+	my($self, $imageobj) = @_;
+	my $resources = $self->xobject->dictionary->get('Resources');
+	$resources->get('ProcSet')->add(name('ImageC'));
+	$resources->set(XObject => {}) unless $resources->exists('XObject');
+	$resources->get('XObject')->set($imageobj->{name}, $imageobj->{image});
+}
+
+sub usexobject {
+	my($self, $xobj) = @_;
+	my $resources = $self->xobject->dictionary->get('Resources');
+	$resources->set(XObject => {}) unless $resources->exists('XObject');
+	$resources->get('XObject')->set($xobj->{name}, $xobj->{xobject});
 }
 
 #--------------------------------------------------------------------------
@@ -4374,10 +6327,10 @@ use strict;
 use PDFJ::Object;
 
 sub new {
-	my($class, $docobj, $pagewidth, $pageheight) = @_;
+	my($class, $docobj, $pos, $pagewidth, $pageheight, $dur, $trans) = @_;
 	my $pagetree = $docobj->{pagetree};
-	$pagewidth ||= $docobj->{pagewidth};
-	$pageheight ||= $docobj->{pageheight};
+	$pagewidth ||= $docobj->pagewidth;
+	$pageheight ||= $docobj->pageheight;
 	my $page = $docobj->indirect(dictionary({
 		Type => name('Page'),
 		Parent => $pagetree,
@@ -4386,9 +6339,38 @@ sub new {
 		Contents => $docobj->indirect(
 			contents_stream(dictionary => {}, stream => [])),
 		}));
-	push @{$docobj->{pagelist}}, $page;
-	my $pagenum = @{$docobj->{pagelist}};
-	$pagetree->get('Kids')->push($page);
+	if( $dur ) {
+		$page->set(Dur => $dur);
+	}
+	if( $trans ) {
+		my($d, $s, @opts) = split /\s*,\s*/, $trans;
+		my $transobj = dictionary({
+			Type => name('Trans'),
+			D => $d,
+			S => name($s),
+		});
+		for my $opt(@opts) {
+			if( $opt eq 'H' || $opt eq 'V' ) {
+				$transobj->set(Dm => name($opt));
+			} elsif( $opt eq 'I' || $opt eq 'O' ) {
+				$transobj->set(M => name($opt));
+			} elsif( $opt =~ /^\d+$/ ) {
+				$transobj->set(Di => $opt);
+			}
+		}
+		$page->set(Trans => $transobj);
+	}
+	my $pagenum;
+	$pos = -1 if $pos >= @{$docobj->{pagelist}};
+	if( $pos >= 0 ) {
+		splice @{$docobj->{pagelist}}, $pos, 0, $page;
+		$pagenum = $pos + 1;
+		$pagetree->get('Kids')->insert($pos, $page);
+	} else {
+		push @{$docobj->{pagelist}}, $page;
+		$pagenum = @{$docobj->{pagelist}};
+		$pagetree->get('Kids')->push($page);
+	}
 	$pagetree->get('Count')->add(1);
 	my $self = bless {
 		page => $page, 
@@ -4397,8 +6379,20 @@ sub new {
 		docobj => $docobj, 
 		layer => 0,
 	}, $class;
-	push @{$docobj->{pageobjlist}}, $self;
+	if( $pos >= 0 ) {
+		splice @{$docobj->{pageobjlist}}, $pos, 0, $self;
+		for( my $j = $pos + 1; $j < @{$docobj->{pageobjlist}}; $j++ ) {
+			$docobj->{pageobjlist}[$j]{pagenum}++;
+		}
+	} else {
+		push @{$docobj->{pageobjlist}}, $self;
+	}
 	$self;
+}
+
+sub show {
+	my($self, $obj, @args) = @_;
+	$obj->show($self, @args);
 }
 
 sub docobj {
@@ -4422,20 +6416,50 @@ sub getlayer {
 }
 
 sub addcontents {
-	my($self, $str) = @_;
-	$str .= " " unless $str =~ / $/;
-	$self->page->get('Contents')->append($str, $self->getlayer);
+	my($self, @str) = @_;
+	#my @tmp = map {($_, " ")} @str;
+	my @tmp;
+	my $lasttype;
+	for my $str(@str) {
+		my $type = ref($str) ? '' :
+			($str =~ /^\(/ && $str =~ /\)$/) ? 'l' :
+			($str =~ /^</ && $str =~ />$/) ? 'h' : '';
+		if( $type && $type eq $lasttype ) {
+			$tmp[$#tmp] = substr($tmp[$#tmp], 0, length($tmp[$#tmp]) - 1) . 
+				substr($str, 1);
+		} else {
+			push @tmp, " " if @tmp;
+			push @tmp, $str;
+		}
+		$lasttype = $type;
+	}
+	push @tmp, " " if @tmp;
+	$self->page->get('Contents')->append(\@tmp, $self->getlayer);
 }
 
 sub layer {
-	my($self, $layer) = @_;
+	my($self, $layer)
+		= PDFJ::Util::methodargs([qw(layer)], @_);
 	$self->{layer} = $layer;
 	$self;
+}
+
+sub setattr {
+	my($self, $name, $value)
+		= PDFJ::Util::methodargs([qw(name value)], @_);
+	$self->{attr}{$name} = $value;
+}
+
+sub getattr {
+	my($self, $name)
+		= PDFJ::Util::methodargs([qw(name)], @_);
+	$self->{attr}{$name};
 }
 
 sub usefonts {
 	my($self, @names) = @_;
 	my $docobj = $self->docobj;
+	$docobj->_usefonts(@names);
 	my $resources = $self->page->get('Resources');
 	for my $name(@names) {
 		$resources->get('Font')->set($name, $docobj->_font($name));
@@ -4450,6 +6474,13 @@ sub useimage {
 	$resources->get('XObject')->set($imageobj->{name}, $imageobj->{image});
 }
 
+sub usexobject {
+	my($self, $xobj) = @_;
+	my $resources = $self->page->get('Resources');
+	$resources->set(XObject => {}) unless $resources->exists('XObject');
+	$resources->get('XObject')->set($xobj->{name}, $xobj->{xobject});
+}
+
 sub dest {
 	my($self, $argtype, @args) = @_;
 	array([$self->page, name($argtype), map {$_ eq '' ? null : $_} @args]);
@@ -4461,13 +6492,19 @@ sub add_link {
 }
 
 sub add_annot {
-	my($self, %spec) = @_;
-	$spec{Type} = name('Annot');
+	my $self = shift;
+	my $hash;
+	if( @_ == 1 && ref($_[0]) eq 'HASH' ) {
+		$hash = $_[0];
+	} else {
+		%$hash = @_;
+	}
+	$hash->{Type} = name('Annot');
 	my $docobj = $self->docobj;
 	unless( $self->page->exists('Annots') ) {
 		$self->page->set(Annots => []);
 	}
-	$self->page->get('Annots')->push($docobj->indirect(dictionary(\%spec)));
+	$self->page->get('Annots')->push($docobj->indirect(dictionary($hash)));
 }
 
 sub solve_link {
@@ -4476,7 +6513,16 @@ sub solve_link {
 	for my $rect(keys %{$self->{link}}) {
 		my $name = $self->{link}{$rect};
 		my @rect = split(',', $rect);
-		if( $name =~ /^URI:(.+)/ ) {
+		if( ref($name) eq 'ARRAY' ) {
+			my($page, $x, $y) = @$name;
+			my $dest = $page->dest('XYZ', $x, $y, 0);
+			$self->add_annot(
+				Subtype => name('Link'),
+				Rect => [@rect],
+				Border => [0,0,0],
+				Dest => $dest,
+			);
+		} elsif( $name =~ /^URI:(.+)/ ) {
 			my $uri = $1;
 			$self->add_annot(
 				Subtype => name('Link'),
@@ -4488,15 +6534,35 @@ sub solve_link {
 					URI => string(PDFJ::Util::uriencode($uri))
 				},
 			);
-		} else {
-			my $dest = $docobj->dest($name)
-				or croak "missing dest '$name'";
+		} elsif( $name =~ /^PAGE:\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/ ) {
+			my($pagenum, $x, $y) = ($1, $2, $3);
+			my $page = $docobj->get_page($pagenum - 1);
+			my $dest = $page->dest('XYZ', $x, $y, 0);
 			$self->add_annot(
 				Subtype => name('Link'),
 				Rect => [@rect],
 				Border => [0,0,0],
 				Dest => $dest,
 			);
+		} else {
+			my $dest = $docobj->dest($name);
+			if( $dest ) {
+				if( ref($dest) eq 'ARRAY' ) {
+					$dest = $$dest[$#$dest];
+				}
+				$self->add_annot(
+					Subtype => name('Link'),
+					Rect => [@rect],
+					Border => [0,0,0],
+					Dest => $dest,
+				);
+			} elsif( $docobj->getoption('missdest') eq 'neglect' ) {
+				# do nothing
+			} elsif( $docobj->getoption('missdest') eq 'carp' ) {
+				carp "missing dest '$name'\n";
+			} else {
+				croak "missing dest '$name'\n";
+			}
 		}
 	}
 }
@@ -4507,15 +6573,22 @@ use strict;
 use PDFJ::Object;
 
 sub new {
-	my($class, $version, $handle, $objtable, $rootobj) = @_;
-	binmode $handle;
+	my($class, $version, $handle, $objtable, $rootobj, $idobj, $infoobj, 
+		$encryptobj, $encryptkey, $filter) = @_;
+	binmode $handle unless PDFJ::Util::objisa($handle, 'IO::Scalar');
 	bless {
 		version => $version,  # PDF version
 		handle => $handle,    # file handle
 		objtable => $objtable,  # PDFJ::ObjTable object
-		rootobj => $rootobj,  # document catalog object
+		rootobj => $rootobj,  # document catalog object for Root entry
+		idobj => $idobj,      # file ID array object for ID entry
+		infoobj => $infoobj,  # document information object for Info entry
+		encryptobj => $encryptobj, # encryption object for Encrypt entry
+		encryptkey => $encryptkey,
+		filter => $filter,
 		objposlist => [], 
-		xrefpos => 0
+		xrefpos => 0,
+		tell => 0
 	}, $class;
 }
 
@@ -4531,24 +6604,34 @@ sub print_header {
 	my $self = shift;
 	my $handle = $self->{handle};
 	my $version = $self->{version};
-	print $handle "%PDF-$version\n";
+	#print $handle "%PDF-$version\n";
+ 	my $header = "%PDF-$version\n";
+ 	$self->{tell} += length($header);
+ 	print $handle $header;
 }
 
 sub print_body {
 	my $self = shift;
 	my $handle = $self->{handle};
+	my $encryptkey = $self->{encryptkey};
+	my $filter = $self->{filter};
 	my $objtable = $self->{objtable};
 	return unless $objtable->lastobjnum;
 	for my $objnum(1 .. $objtable->lastobjnum) {
-		$self->{objposlist}->[$objnum] = $handle->tell;
-		$objtable->get($objnum)->print($handle);
+		next if $objtable->get($objnum)->unused;
+#		$self->{objposlist}->[$objnum] = $handle->tell;
+#		$objtable->get($objnum)->print($handle);
+		$self->{objposlist}->[$objnum] = $self->{tell};
+		$self->{tell} += $objtable->get($objnum)->
+			print($handle, $encryptkey, $filter);
 	}
 }
 
 sub print_xref {
 	my $self = shift;
 	my $handle = $self->{handle};
-	$self->{xrefpos} = $handle->tell;
+#	$self->{xrefpos} = $handle->tell;
+	$self->{xrefpos} =  $self->{tell};
 	print $handle "xref\n";
 	my $objtable = $self->{objtable};
 	my $lastobjnum = $objtable->lastobjnum;
@@ -4574,356 +6657,11 @@ sub print_trailer {
 		Size => $objtable->lastobjnum + 1, 
 		Root => $self->{rootobj}
 		});
+	$traildic->set(Info => $self->{infoobj}) if $self->{infoobj};
+	$traildic->set(Encrypt => $self->{encryptobj}) if $self->{encryptobj};
+	$traildic->set(ID => $self->{idobj}) if $self->{idobj};
 	print $handle "trailer\n", $traildic->output, 
 		"\nstartxref\n$xrefpos\n%%EOF\n";
 }
 
-#--------------------------------------------------------------------------
-package PDFJ::ObjTable;
-use strict;
-
-sub new {
-	my($class) = @_;
-	bless {objlist => [undef]}, $class;
-}
-
-sub lastobjnum {
-	my $self = shift;
-	$#{$self->{objlist}};
-}
-
-sub get {
-	my($self, $idx) = @_;
-	$self->{objlist}->[$idx];
-}
-
-sub set {
-	my($self, $idx, $obj) = @_;
-	$self->{objlist}->[$idx] = $obj;
-}
-
 1;
-#--------------------------------------------------------------------------
-# for SelfLoader in PDFJ::AFont
-package PDFJ::AFont;
-__DATA__
-sub fontwidth_Courier { [
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600
-] }
-sub fontwidth_Courier_Bold { [
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600
-] }
-sub fontwidth_Courier_BoldOblique { [
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600
-] }
-sub fontwidth_Courier_Oblique { [
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600,  600,  600,  600,  600,  600,  600,  600,  600,
-	600,  600,  600
-] }
-sub fontwidth_Helvetica { [
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  355,  556,  556,  889,  667,  221,  333,  333,  389,  584,
-	278,  333,  278,  278,  556,  556,  556,  556,  556,  556,  556,
-	556,  556,  556,  278,  278,  584,  584,  584,  556, 1015,  667,
-	667,  722,  722,  667,  611,  778,  722,  278,  500,  667,  556,
-	833,  722,  778,  667,  778,  722,  667,  611,  722,  667,  944,
-	667,  667,  611,  278,  278,  278,  469,  556,  222,  556,  556,
-	500,  556,  556,  278,  556,  556,  222,  222,  500,  222,  833,
-	556,  556,  556,  556,  333,  500,  278,  556,  500,  722,  500,
-	500,  500,  334,  260,  334,  584,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  333,  556,  556,  167,
-	556,  556,  556,  556,  191,  333,  556,  333,  333,  500,  500,
-	278,  556,  556,  556,  278,  278,  537,  350,  222,  333,  333,
-	556, 1000, 1000,  278,  611,  278,  333,  333,  333,  333,  333,
-	333,  333,  333,  278,  333,  333,  278,  333,  333,  333, 1000,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278, 1000,  278,  370,  278,  278,  278,
-	278,  556,  778, 1000,  365,  278,  278,  278,  278,  278,  889,
-	278,  278,  278,  278,  278,  278,  222,  611,  944,  611,  278,
-	278,  278,  278
-] }
-sub fontwidth_Helvetica_Bold { [
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	333,  474,  556,  556,  889,  722,  278,  333,  333,  389,  584,
-	278,  333,  278,  278,  556,  556,  556,  556,  556,  556,  556,
-	556,  556,  556,  333,  333,  584,  584,  584,  611,  975,  722,
-	722,  722,  722,  667,  611,  778,  722,  278,  556,  722,  611,
-	833,  722,  778,  667,  778,  722,  667,  611,  722,  667,  944,
-	667,  667,  611,  333,  278,  333,  584,  556,  278,  556,  611,
-	556,  611,  556,  333,  611,  611,  278,  278,  556,  278,  889,
-	611,  611,  611,  611,  389,  556,  333,  611,  556,  778,  556,
-	556,  500,  389,  280,  389,  584,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  333,  556,  556,  167,
-	556,  556,  556,  556,  238,  500,  556,  333,  333,  611,  611,
-	278,  556,  556,  556,  278,  278,  556,  350,  278,  500,  500,
-	556, 1000, 1000,  278,  611,  278,  333,  333,  333,  333,  333,
-	333,  333,  333,  278,  333,  333,  278,  333,  333,  333, 1000,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278, 1000,  278,  370,  278,  278,  278,
-	278,  611,  778, 1000,  365,  278,  278,  278,  278,  278,  889,
-	278,  278,  278,  278,  278,  278,  278,  611,  944,  611,  278,
-	278,  278,  278
-] }
-sub fontwidth_Helvetica_BoldOblique { [
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	333,  474,  556,  556,  889,  722,  278,  333,  333,  389,  584,
-	278,  333,  278,  278,  556,  556,  556,  556,  556,  556,  556,
-	556,  556,  556,  333,  333,  584,  584,  584,  611,  975,  722,
-	722,  722,  722,  667,  611,  778,  722,  278,  556,  722,  611,
-	833,  722,  778,  667,  778,  722,  667,  611,  722,  667,  944,
-	667,  667,  611,  333,  278,  333,  584,  556,  278,  556,  611,
-	556,  611,  556,  333,  611,  611,  278,  278,  556,  278,  889,
-	611,  611,  611,  611,  389,  556,  333,  611,  556,  778,  556,
-	556,  500,  389,  280,  389,  584,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  333,  556,  556,  167,
-	556,  556,  556,  556,  238,  500,  556,  333,  333,  611,  611,
-	278,  556,  556,  556,  278,  278,  556,  350,  278,  500,  500,
-	556, 1000, 1000,  278,  611,  278,  333,  333,  333,  333,  333,
-	333,  333,  333,  278,  333,  333,  278,  333,  333,  333, 1000,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278, 1000,  278,  370,  278,  278,  278,
-	278,  611,  778, 1000,  365,  278,  278,  278,  278,  278,  889,
-	278,  278,  278,  278,  278,  278,  278,  611,  944,  611,  278,
-	278,  278,  278
-] }
-sub fontwidth_Helvetica_Oblique { [
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  355,  556,  556,  889,  667,  222,  333,  333,  389,  584,
-	278,  333,  278,  278,  556,  556,  556,  556,  556,  556,  556,
-	556,  556,  556,  278,  278,  584,  584,  584,  556, 1015,  667,
-	667,  722,  722,  667,  611,  778,  722,  278,  500,  667,  556,
-	833,  722,  778,  667,  778,  722,  667,  611,  722,  667,  944,
-	667,  667,  611,  278,  278,  278,  469,  556,  222,  556,  556,
-	500,  556,  556,  278,  556,  556,  222,  222,  500,  222,  833,
-	556,  556,  556,  556,  333,  500,  278,  556,  500,  722,  500,
-	500,  500,  334,  260,  334,  584,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278,  278,  278,  333,  556,  556,  167,
-	556,  556,  556,  556,  191,  333,  556,  333,  333,  500,  500,
-	278,  556,  556,  556,  278,  278,  537,  350,  222,  333,  333,
-	556, 1000, 1000,  278,  611,  278,  333,  333,  333,  333,  333,
-	333,  333,  333,  278,  333,  333,  278,  333,  333,  333, 1000,
-	278,  278,  278,  278,  278,  278,  278,  278,  278,  278,  278,
-	278,  278,  278,  278,  278, 1000,  278,  370,  278,  278,  278,
-	278,  556,  778, 1000,  365,  278,  278,  278,  278,  278,  889,
-	278,  278,  278,  278,  278,  278,  222,  611,  944,  611,  278,
-	278,  278,  278
-] }
-# The chracter #39 (single quote) in Times-* fonts has 333 width
-# in afm files. But Acrobat uses a width nallower than it. I use an 
-# experimental value 222.
-sub fontwidth_Times_Bold { [
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-#	333,  555,  500,  500, 1000,  833,  333,  333,  333,  500,  570,
-	333,  555,  500,  500, 1000,  833,  222,  333,  333,  500,  570,
-	250,  333,  250,  278,  500,  500,  500,  500,  500,  500,  500,
-	500,  500,  500,  333,  333,  570,  570,  570,  500,  930,  722,
-	667,  722,  722,  667,  611,  778,  778,  389,  500,  778,  667,
-	944,  722,  778,  611,  778,  722,  556,  667,  722,  722, 1000,
-	722,  722,  667,  333,  278,  333,  581,  500,  333,  500,  556,
-	444,  556,  444,  333,  500,  556,  278,  333,  556,  278,  833,
-	556,  500,  556,  556,  444,  389,  333,  556,  500,  722,  500,
-	500,  444,  394,  220,  394,  520,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  333,  500,  500,  167,
-	500,  500,  500,  500,  278,  500,  500,  333,  333,  556,  556,
-	250,  500,  500,  500,  250,  250,  540,  350,  333,  500,  500,
-	500, 1000, 1000,  250,  500,  250,  333,  333,  333,  333,  333,
-	333,  333,  333,  250,  333,  333,  250,  333,  333,  333, 1000,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250, 1000,  250,  300,  250,  250,  250,
-	250,  667,  778, 1000,  330,  250,  250,  250,  250,  250,  722,
-	250,  250,  250,  278,  250,  250,  278,  500,  722,  556,  250,
-	250,  250,  250
-] }
-sub fontwidth_Times_BoldItalic { [
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-#	389,  555,  500,  500,  833,  778,  333,  333,  333,  500,  570,
-	389,  555,  500,  500,  833,  778,  222,  333,  333,  500,  570,
-	250,  333,  250,  278,  500,  500,  500,  500,  500,  500,  500,
-	500,  500,  500,  333,  333,  570,  570,  570,  500,  832,  667,
-	667,  667,  722,  667,  667,  722,  778,  389,  500,  667,  611,
-	889,  722,  722,  611,  722,  667,  556,  611,  722,  667,  889,
-	667,  611,  611,  333,  278,  333,  570,  500,  333,  500,  500,
-	444,  500,  444,  333,  500,  556,  278,  278,  500,  278,  778,
-	556,  500,  500,  500,  389,  389,  278,  556,  444,  667,  500,
-	444,  389,  348,  220,  348,  570,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  389,  500,  500,  167,
-	500,  500,  500,  500,  278,  500,  500,  333,  333,  556,  556,
-	250,  500,  500,  500,  250,  250,  500,  350,  333,  500,  500,
-	500, 1000, 1000,  250,  500,  250,  333,  333,  333,  333,  333,
-	333,  333,  333,  250,  333,  333,  250,  333,  333,  333, 1000,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  944,  250,  266,  250,  250,  250,
-	250,  611,  722,  944,  300,  250,  250,  250,  250,  250,  722,
-	250,  250,  250,  278,  250,  250,  278,  500,  722,  500,  250,
-	250,  250,  250
-] }
-sub fontwidth_Times_Italic { [
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-#	333,  420,  500,  500,  833,  778,  333,  333,  333,  500,  675,
-	333,  420,  500,  500,  833,  778,  222,  333,  333,  500,  675,
-	250,  333,  250,  278,  500,  500,  500,  500,  500,  500,  500,
-	500,  500,  500,  333,  333,  675,  675,  675,  500,  920,  611,
-	611,  667,  722,  611,  611,  722,  722,  333,  444,  667,  556,
-	833,  667,  722,  611,  722,  611,  500,  556,  722,  611,  833,
-	611,  556,  556,  389,  278,  389,  422,  500,  333,  500,  500,
-	444,  500,  444,  278,  500,  500,  278,  278,  444,  278,  722,
-	500,  500,  500,  500,  389,  389,  278,  500,  444,  667,  444,
-	444,  389,  400,  275,  400,  541,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  389,  500,  500,  167,
-	500,  500,  500,  500,  214,  556,  500,  333,  333,  500,  500,
-	250,  500,  500,  500,  250,  250,  523,  350,  333,  556,  556,
-	500,  889, 1000,  250,  500,  250,  333,  333,  333,  333,  333,
-	333,  333,  333,  250,  333,  333,  250,  333,  333,  333,  889,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  889,  250,  276,  250,  250,  250,
-	250,  556,  722,  944,  310,  250,  250,  250,  250,  250,  667,
-	250,  250,  250,  278,  250,  250,  278,  500,  667,  500,  250,
-	250,  250,  250
-] }
-sub fontwidth_Times_Roman { [
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-#	333,  408,  500,  500,  833,  778,  333,  333,  333,  500,  564,
-	333,  408,  500,  500,  833,  778,  222,  333,  333,  500,  564,
-	250,  333,  250,  278,  500,  500,  500,  500,  500,  500,  500,
-	500,  500,  500,  278,  278,  564,  564,  564,  444,  921,  722,
-	667,  667,  722,  611,  556,  722,  722,  333,  389,  722,  611,
-	889,  722,  722,  556,  722,  667,  556,  611,  722,  722,  944,
-	722,  722,  611,  333,  278,  333,  469,  500,  333,  444,  500,
-	444,  500,  444,  333,  500,  500,  278,  278,  500,  278,  778,
-	500,  500,  500,  500,  333,  389,  278,  500,  500,  722,  500,
-	500,  444,  480,  200,  480,  541,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  250,  250,  333,  500,  500,  167,
-	500,  500,  500,  500,  180,  444,  500,  333,  333,  556,  556,
-	250,  500,  500,  500,  250,  250,  453,  350,  333,  444,  444,
-	500, 1000, 1000,  250,  444,  250,  333,  333,  333,  333,  333,
-	333,  333,  333,  250,  333,  333,  250,  333,  333,  333, 1000,
-	250,  250,  250,  250,  250,  250,  250,  250,  250,  250,  250,
-	250,  250,  250,  250,  250,  889,  250,  276,  250,  250,  250,
-	250,  611,  722,  889,  310,  250,  250,  250,  250,  250,  667,
-	250,  250,  250,  278,  250,  250,  278,  500,  722,  500,  250,
-	250,  250,  250
-] }
-
