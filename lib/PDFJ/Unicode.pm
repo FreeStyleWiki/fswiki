@@ -1,5 +1,11 @@
 package PDFJ::Unicode;
+use PDFJ::U2C;
 use strict;
+
+BEGIN {
+	eval { require bytes; };
+	bytes->import unless $@;
+}
 
 my $euc2unihash;
 
@@ -73,10 +79,14 @@ sub sjistounicode {
 
 sub utf8tounicode {
 	my $str = shift;
+	if( $] > 5.007 ) {
+		utf8::downgrade($str, 1);
+	}
+	$str =~ s/^\xfe\xff//;
 	my $result;
 	while( $str =~ /([\x00-\x7F])|([\xC0-\xDF])([\x80-\xBF])|([\xE0-\xEF])([\x80-\xBF])([\x80-\xBF])/g ) {
-		if( $1 ) {
-			$result .= "\x00$1";
+		if( defined $1 ) {
+			$result .= "\x00".$1;
 		} elsif( $2 ) {
 			$result .= pack("n",((ord($2) & 31) << 6)|(ord($3) & 63));
 		} else {
@@ -87,28 +97,17 @@ sub utf8tounicode {
 	$result;
 }
 
-my $unicode2cidhash_hp;
-my $unicode2cidhash_h;
-my $unicode2cidhash_vp;
-my $unicode2cidhash_v;
+my %u2chashes;
 sub unicodetocid {
-	my($uni, $type) = @_; # $type: H, V, Hp, Vp
-	unless( $unicode2cidhash_hp ) {
-		require PDFJ::U2C;
-		$unicode2cidhash_hp = unicode2cidhash_hp();
-		$unicode2cidhash_h  = unicode2cidhash_h();
-		$unicode2cidhash_vp = unicode2cidhash_vp();
-		$unicode2cidhash_v  = unicode2cidhash_v();
+	my($uni, $encoding) = @_; 
+	unless( exists $u2chashes{$encoding} ) {
+		$u2chashes{$encoding} = PDFJ::U2C::hashes($encoding);
 	}
-	if( $type eq 'H' ) {
-		$unicode2cidhash_h->{$uni} || $unicode2cidhash_hp->{$uni};
-	} elsif( $type eq 'V' ) {
-		$unicode2cidhash_v->{$uni} || $unicode2cidhash_hp->{$uni};
-	} elsif( $type eq 'Vp' ) {
-		$unicode2cidhash_vp->{$uni} || $unicode2cidhash_hp->{$uni};
-	} else {
-		$unicode2cidhash_hp->{$uni};
-	} 
+	my $hashes = $u2chashes{$encoding};
+	for my $hash(@$hashes) {
+		return $hash->{$uni} if $hash->{$uni};
+	}
+	return '-';
 }
 
 1;
