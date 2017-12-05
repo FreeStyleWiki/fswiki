@@ -113,10 +113,13 @@ sub show_history {
 			my($date, $time, $unixtime, $action, $subject, $id) = split(" ",$_);
 			$subject = Util::url_decode($subject);
 			if($subject eq $page){
-				if($id eq ''){
-					$editlog->{substr($unixtime, 0, length($unixtime) - 4)} = 'anonymous';
-				} else {
-					$editlog->{substr($unixtime, 0, length($unixtime) - 4)} = $id;
+				$id = 'anonymous' if ($id eq '');
+				if (!defined($editlog->{$unixtime})) {
+					$editlog->{$unixtime} = $id;
+				} elsif (!defined($editlog->{$unixtime -1})) {
+					$editlog->{$unixtime} = $id;
+				} elsif (!defined($editlog->{$unixtime +1})) {
+					$editlog->{$unixtime} = $id;
 				}
 			}
 		}
@@ -135,8 +138,8 @@ sub show_history {
 		$buf .= "<a href=\"".$wiki->create_url({ action=>"DIFF",page=>$page,generation=>($#list-$count) })."\">".&Util::format_date($time).
 		        "</a> <a href=\"".$wiki->create_url({ action=>"SOURCE",page=>$page,generation=>($#list-$count) })."\">¥½¡¼¥¹</a>";
 		        
-		if(defined($editlog->{substr($time, 0, length($time) - 4)})){
-			$buf .= " by ".$editlog->{substr($time, 0, length($time) - 4)};
+		if ($editlog->{$time} || $editlog->{$time-1} || $editlog->{$time+1}) {
+			$buf .= " by ".( $editlog->{$time} || $editlog->{$time-1} || $editlog->{$time+1} );
 		}
 		
 		$buf .=  "</li>\n";
