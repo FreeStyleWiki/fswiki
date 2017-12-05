@@ -5,6 +5,7 @@ PROGNAME=`basename $0`
 case "$1" in
 -h|--help)
   echo "usage: $PROGNAME [fswiki_home]"
+  exit
   ;;
 -v|--version)
   echo "$PROGNAME version 0.01"
