@@ -26,6 +26,7 @@ sub new {
 	$self->{quote} = "";
 	$self->{table} = 0;
 	$self->{level} = 0;
+	$self->{list}  = 0;
 	$self->{para}  = 0;
 	$self->{p_cnt} = 0;
 	$self->{main}  = $mainflg;
@@ -44,6 +45,11 @@ sub l_list {
 		$self->{html} .= "</p>\n";
 		$self->{para} = 0;
 	}
+	
+	if($self->{list} == 1 && $level <= $self->{level}){
+		$self->end_list;
+	}
+	$self->{list} = 0;
 	
 	$self->end_verbatim;
 	$self->end_table;
@@ -88,6 +94,11 @@ sub l_numlist {
 		$self->{para} = 0;
 	}
 	
+	if($self->{list} == 0 && $level <= $self->{level}){
+		$self->end_list;
+	}
+	$self->{list} = 1;
+	
 	$self->end_verbatim;
 	$self->end_table;
 	$self->end_quote;
@@ -126,6 +137,7 @@ sub end_list {
 	while($self->{level} != 0){
 		if($self->{'list_close_'.($self->{level})} == 1){
 			$self->{html} .= "</li>\n";
+			$self->{'list_close_'.$self->{level}} = 0;
 		}
 		$self->{html} .= pop(@{$self->{close_list}});
 		$self->{level}--;
