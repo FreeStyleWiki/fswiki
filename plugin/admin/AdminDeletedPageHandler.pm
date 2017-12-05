@@ -111,6 +111,10 @@ sub forget {
 		foreach my $backup_file (@backup_files){
 			unlink($backup_file);
 		}
+		my @attach_files = glob(&Util::make_filename($wiki->config('attach_dir'), &Util::url_encode($selected_page), "*"));
+		foreach my $attach_file (@attach_files){
+			unlink($attach_file);
+		}
 	}
 }
 
