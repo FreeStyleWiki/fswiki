@@ -112,7 +112,7 @@ sub logout {
 	
 	# Cookie¤ÎÇË´þ
 	my $path   = &Util::cookie_path($wiki);
-	my $cookie = CGI::Cookie->new(-name=>'CGISESSID',-value=>'',-expires=>-1,-path=>$path);
+	my $cookie = CGI::Cookie->new(-name=>'CGISESSID',-value=>'',-expires=>1,-path=>$path);
 	print "Set-Cookie: ".$cookie->as_string()."\n";
 	
 	$wiki->redirectURL($wiki->create_url({action=>"LOGIN"}));
