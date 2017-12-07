@@ -24,6 +24,9 @@ tmpl_dir = ./tmpl
 # ログファイルを出力するディレクトリ
 log_dir = ./log
 
+# セッションファイルを出力するディレクト
+session_dir = 
+
 # テーマを格納するディレクトリ
 theme_dir = ./theme
 
