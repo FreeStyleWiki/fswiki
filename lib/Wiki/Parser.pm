@@ -105,7 +105,7 @@ sub parse {
 			if ($self->{block}) {
 				my $plugin = $self->{wiki}->parse_inline_plugin($1);
 				my $info   = $self->{wiki}->get_plugin_info($plugin->{command});
-				$self->{block}->{level}++ if($info->{TYPE} ne "inline");
+				$self->{block}->{level}++ if($info->{TYPE} eq "block");
 				$self->{block}->{args}->[0] .= $line."\n";
 				next;
 			}
