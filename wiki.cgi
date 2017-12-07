@@ -47,7 +47,7 @@ my $cgi = $wiki->get_CGI();
 Util::override_die();
 eval {
 	# Session用ディレクトリはFarmでも共通に使用する
-	$wiki->config('session_dir',$wiki->config('log_dir'));
+	$wiki->config('session_dir',$wiki->config('log_dir')) if (!$wiki->config('session_dir'));
 	
 	#==============================================================================
 	# Farmとして動作する場合
