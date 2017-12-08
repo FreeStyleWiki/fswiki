@@ -520,9 +520,12 @@ sub file_lock {
 		my $mtime = (stat($lock))[9];
 		rmdir($lock) if($mtime < time() - 60);
 	}
+	#ディレクトリ名の長さ取得
+	my $to_long = 0;
+	$to_long = 1 if (length($lock) > 250);
 	
 	while(!mkdir($lock,0777)){
-		die "Lock is busy." if(--$retry <= 0);
+		die "Lock is busy".($to_long ? ' or long filename' : '')."." if(--$retry <= 0);
 		sleep(1);
 	}
 }
@@ -690,7 +693,10 @@ sub md5 {
 sub make_content_disposition {
 	my ($filename, $disposition) = @_;
 	my $ua = $ENV{"HTTP_USER_AGENT"};
-	my $encoded = ($ua =~ /MSIE/ ? &Jcode::convert($filename, 'sjis') : Jcode->new($filename)->mime_encode(''));
+	eval("use MIME::Base64;");
+	my $encoded = ( $ua =~ /MSIE|Trident/i   ? Jcode->new($filename)->sjis
+	              : $ua =~ /Chrome|Firefox/i ? "=?utf-8?B?".MIME::Base64::encode_base64(Jcode->new($filename)->utf8,'')."?="
+	              : Jcode->new($filename)->utf8 );
 	return "Content-Disposition: $disposition;filename=\"".$encoded."\"\n\n";
 }
 
