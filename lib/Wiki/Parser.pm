@@ -238,8 +238,9 @@ sub parse {
 	
 	# パース中のブロックプラグインがあった場合、とりあえず評価しておく？
 	if($self->{block}){
-		$self->l_plugin($self->{block});
+		my $plugin = $self->{block};
 		delete($self->{block});
+		$self->l_plugin($plugin);
 	}
 	
 	$self->end_parse;
