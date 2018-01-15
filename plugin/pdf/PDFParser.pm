@@ -302,7 +302,7 @@ sub l_table {
 	my @blocks;
 	
 	foreach my $cell (@$row){
-		if($#{@$cell}==-1){
+		if($#{$cell}==-1){
 			push(@$cell,Text("--",$self->{tstyle}->{normal}));
 		}
 		my $block = Block('V',Paragraph(Text($cell,$self->{tstyle}->{normal}),$pstyle),
