@@ -55,9 +55,9 @@ sub _add_child {
 			}
 		} else {
 			if($parent eq ""){
-				$self->add_inter_wiki($wiki->config('script_name')."/$item?page=","$item");
+				$self->add_inter_wiki($wiki->config('script_name')."/$item?page=","$item","euc");
 			} else {
-				$self->add_inter_wiki($wiki->config('script_name')."/$parent/$item?page=","$parent/$item");
+				$self->add_inter_wiki($wiki->config('script_name')."/$parent/$item?page=","$parent/$item","euc");
 			}
 			$prev = $item;
 		}
