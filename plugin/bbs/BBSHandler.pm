@@ -5,6 +5,7 @@
 ############################################################
 package plugin::bbs::BBSHandler;
 use strict;
+use HTTP::Status;
 #===========================================================
 # コンストラクタ
 #===========================================================
@@ -43,9 +44,9 @@ sub do_action {
 	}
 	
 	if($page eq "" || $count eq ""){
-		return $wiki->error("パラメータが不正です");
+		return $wiki->error(RC_BAD_REQUEST, "パラメータが不正です");
 	} elsif($message eq ""){
-		return $wiki->error("本文を入力してください。");
+		return $wiki->error(RC_BAD_REQUEST, "本文を入力してください。");
 	}
 	
 	# フォーマットプラグインへの対応

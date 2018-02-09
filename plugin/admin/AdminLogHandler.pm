@@ -5,6 +5,7 @@
 ###############################################################################
 package plugin::admin::AdminLogHandler;
 use strict;
+use HTTP::Status;
 #==============================================================================
 # コンストラクタ
 #==============================================================================
@@ -130,7 +131,7 @@ sub delete_log {
 	my $file   = $self->get_filename_from_target($wiki,$target);
 	
 	if($file eq ""){
-		return $wiki->error("パラメータが不正です。");
+		return $wiki->error(RC_BAD_REQUEST, "パラメータが不正です。");
 	}
 	
 	unlink($wiki->config('log_dir')."/$file") or die $file."の削除に失敗しました。";
@@ -152,7 +153,7 @@ sub download_log {
 	my $file   = $self->get_filename_from_target($wiki,$target);
 	
 	if($file eq ""){
-		return $wiki->error("パラメータが不正です。");
+		return $wiki->error(RC_BAD_REQUEST, "パラメータが不正です。");
 	}
 	
 	print "Content-Type: text/plain\n";

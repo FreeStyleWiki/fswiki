@@ -8,6 +8,7 @@ use strict;
 use CGI2;
 use File::Copy;
 use File::Path;
+use HTTP::Status;
 use Wiki::DefaultStorage;
 use Wiki::HTMLParser;
 use vars qw($VERSION $DEBUG);
@@ -548,17 +549,17 @@ sub call_handler {
 	my $obj = $self->get_plugin_instance($self->{"handler"}->{$action});
 	
 	unless(defined($obj)){
-		return $self->error("不正なアクションです。");
+		return $self->error(RC_BAD_REQUEST, "不正なアクションです。");
 	}
 	
 	# 管理者用のアクション
 	if($self->{"handler_permission"}->{$action}==0){
 		my $login = $self->get_login_info();
 		if(!defined($login)){
-			return $self->error("ログインしていません。");
+			return $self->error(RC_FORBIDDEN, "ログインしていません。");
 			
 		} elsif($login->{type}!=0){
-			return $self->error("管理者権限が必要です。");
+			return $self->error(RC_FORBIDDEN, "管理者権限が必要です。");
 		}
 		return $obj->do_action($self).
 		       "<div class=\"comment\"><a href=\"".$self->create_url({action=>"LOGIN"})."\">メニューに戻る</a></div>";
@@ -567,7 +568,7 @@ sub call_handler {
 	} elsif($self->{"handler_permission"}->{$action}==2){
 		my $login = $self->get_login_info();
 		if(!defined($login)){
-			return $self->error("ログインしていません。");
+			return $self->error(RC_FORBIDDEN, "ログインしていません。");
 		}
 		return $obj->do_action($self).
 		       "<div class=\"comment\"><a href=\"".$self->create_url({action=>"LOGIN"})."\">メニューに戻る</a></div>";
@@ -678,12 +679,22 @@ sub get_current_parser {
 #   my $wiki = shift;
 #   ...
 #   return $wiki-&gt;error(エラーメッセージ);
+#     or
+#   return $wiki-&gt;error(エラーコード, エラーメッセージ);
 # }
 # </pre>
 #==============================================================================
 sub error {
 	my $self    = shift;
+	my $status = shift;
 	my $message = shift;
+	
+	if(!defined($message)){
+		$message = $status;
+		$status = undef;
+	} else {
+		printf "Status: %d\n", $status;
+	}
 	
 	$self->set_title("エラー");
 	$self->get_CGI->param("action","ERROR");

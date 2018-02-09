@@ -5,6 +5,7 @@
 ###############################################################################
 package plugin::core::Source;
 use strict;
+use HTTP::Status;
 #==============================================================================
 # コンストラクタ
 #==============================================================================
@@ -27,7 +28,7 @@ sub do_action {
 		$pagename = $wiki->config("frontpage");
 	}
 	unless($wiki->can_show($pagename)){
-		return $wiki->error("参照権限がありません。");
+		return $wiki->error(RC_FORBIDDEN, "参照権限がありません。");
 	}
 	my $gen = $cgi->param("generation");
 	my $source;

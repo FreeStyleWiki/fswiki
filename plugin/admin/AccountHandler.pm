@@ -5,6 +5,7 @@
 ###############################################################################
 package plugin::admin::AccountHandler;
 use strict;
+use HTTP::Status;
 #==============================================================================
 # コンストラクタ
 #==============================================================================
@@ -28,7 +29,7 @@ sub do_action {
 		return $self->change_pass($wiki);
 	}
 	if(!defined($wiki->get_login_info)) {
-		return $wiki->error("ログインしていません。");
+		return $wiki->error(RC_FORBIDDEN, "ログインしていません。");
 	}
 	my $id = $wiki->get_login_info()->{id};
 	
@@ -97,11 +98,11 @@ sub change_pass {
 
 		# 新しいパスワードの正当性の確認
 		if ( length( $pass ) < $min_length ) {
-			return $wiki->error("新しいパスワードが入力されていません。".
+			return $wiki->error(RC_BAD_REQUEST, "新しいパスワードが入力されていません。".
 				"少なくとも $min_length 文字以上入力してください。");
 		}
 		elsif ( $pass ne $pass_confirm ) {
-			return $wiki->error("入力された二つのパスワードが合致しません。");
+			return $wiki->error(RC_BAD_REQUEST, "入力された二つのパスワードが合致しません。");
 		}
 
 		my $session = $cgi->get_session($wiki);
@@ -115,7 +116,7 @@ sub change_pass {
 		$users->{$id} = &Util::md5($pass,$id)."\t$type";
 		&Util::save_config_hash($wiki,$wiki->config('userdat_file'),$users);
 	} else {
-		return $wiki->error("現在のパスワードが違います。");
+		return $wiki->error(RC_UNAUTHORIZED, "現在のパスワードが違います。");
 	}
 	
 	$wiki->redirectURL( $wiki->create_url({ action=>"LOGIN" }) );

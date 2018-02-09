@@ -5,6 +5,7 @@
 ############################################################
 package plugin::core::NewPage;
 #use strict;
+use HTTP::Status;
 #===========================================================
 # コンストラクタ
 #===========================================================
@@ -23,7 +24,7 @@ sub do_action {
 	my $cgi = $wiki->get_CGI;
 	
 	if($wiki->config('accept_edit')==0 && !defined($wiki->get_login_info())){
-		return $wiki->error("ページの作成は許可されていません。");
+		return $wiki->error(RC_FORBIDDEN, "ページの作成は許可されていません。");
 	}
 	
 	$wiki->set_title("新規作成",1);

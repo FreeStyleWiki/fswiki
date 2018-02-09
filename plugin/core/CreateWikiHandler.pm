@@ -6,6 +6,7 @@
 ###############################################################################
 package plugin::core::CreateWikiHandler;
 use strict;
+use HTTP::Status;
 use plugin::core::WikiList;
 #==============================================================================
 # コンストラクタ
@@ -34,12 +35,12 @@ sub do_action{
 	if($config->{create}==1){
 		if(!defined($login)){
 			$can_create = 0;
-			#return $farm->error("Wikiの作成は許可されていません。");
+			#return $farm->error(RC_FORBIDDEN, "Wikiの作成は許可されていません。");
 		}
 	} elsif($config->{create}==2){
 		if(!defined($login) || $login->{type}!=0){
 			$can_create = 0;
-			#return $farm->error("Wikiの作成は許可されていません。");
+			#return $farm->error(RC_FORBIDDEN, "Wikiの作成は許可されていません。");
 		}
 	}
 	
@@ -83,24 +84,24 @@ sub do_action{
 		
 	}else{
 		if($can_create==0){
-			return $farm->error("Wikiの作成は許可されていません。");
+			return $farm->error(RC_FORBIDDEN, "Wikiの作成は許可されていません。");
 		}
 		
 		# 入力チェック
 		if(!($child =~ /^[A-Za-z0-9]+$/)){
-			return $farm->error(&Util::escapeHTML($child)."は不正な名称です。");
+			return $farm->error(RC_BAD_REQUEST, &Util::escapeHTML($child)."は不正な名称です。");
 		
 		} elsif($admin_id eq ""){
-			return $farm->error("管理者IDを入力してください。");
+			return $farm->error(RC_BAD_REQUEST, "管理者IDを入力してください。");
 			
 		} elsif($admin_pass eq ""){
-			return $farm->error("管理者パスワードを入力してください。");
+			return $farm->error(RC_BAD_REQUEST, "管理者パスワードを入力してください。");
 			
 		} elsif(!($admin_id =~ /^[A-Za-z0-9]+$/)){
-			return $farm->error("管理者IDが不正です。");
+			return $farm->error(RC_BAD_REQUEST, "管理者IDが不正です。");
 		
 		} elsif(!($admin_pass =~ /^[A-Za-z0-9]+$/)){
-			return $farm->error("管理者パスワードが不正です。");
+			return $farm->error(RC_BAD_REQUEST, "管理者パスワードが不正です。");
 		
 		# 子Wikiの重複をチェック
 		} elsif($farm->wiki_exists($child)){

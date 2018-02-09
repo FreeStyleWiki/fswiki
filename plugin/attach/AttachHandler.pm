@@ -5,6 +5,7 @@
 ############################################################
 package plugin::attach::AttachHandler;
 use strict;
+use HTTP::Status;
 use plugin::attach::Files;
 #===========================================================
 # コンストラクタ
@@ -32,13 +33,13 @@ sub do_action {
 	
 	if($cgi->param("UPLOAD") ne "" || $cgi->param("CONFIRM") ne "" || $cgi->param("DELETE") ne ""){
 		unless($wiki->can_modify_page($pagename)){
-			return $wiki->error("編集は禁止されています。");
+			return $wiki->error(RC_FORBIDDEN, "編集は禁止されています。");
 		}
 	}
 	
 	if($cgi->param("DELETE") ne ""){
 		unless(&plugin::attach::Files::can_attach_delete($wiki, $pagename)){
-			return $wiki->error("ファイルの削除は許可されていません。");
+			return $wiki->error(RC_FORBIDDEN, "ファイルの削除は許可されていません。");
 		}
 	}
 	
@@ -52,17 +53,17 @@ sub do_action {
 		&Jcode::convert(\$filename,'euc');
 		
 		if($filename eq ""){
-			return $wiki->error("ファイルが指定されていません。");
+			return $wiki->error(RC_BAD_REQUEST, "ファイルが指定されていません。");
 		}
 		
 		my $hundle = $cgi->upload("file");
 		unless($hundle){
-			return $wiki->error("ファイルが読み込めませんでした。");
+			return $wiki->error(RC_BAD_REQUEST, "ファイルが読み込めませんでした。");
 		}
 		
 		my $uploadfile = $wiki->config('attach_dir')."/".&Util::url_encode($pagename).".".&Util::url_encode($filename);
 		if(-e $uploadfile && !&plugin::attach::Files::can_attach_update($wiki, $pagename)){
-			return $wiki->error("ファイルの上書きは許可されていません。");
+			return $wiki->error(RC_FORBIDDEN, "ファイルの上書きは許可されていません。");
 		}
 		
 		open(DATA,">$uploadfile") or die $!;
@@ -107,7 +108,7 @@ sub do_action {
 	} elsif($cgi->param("CONFIRM") ne ""){
 		my $file = $cgi->param("file");
 		if($file eq ""){
-			return $wiki->error("ファイルが指定されていません。");
+			return $wiki->error(RC_BAD_REQUEST, "ファイルが指定されていません。");
 		}
 		
 		my $buf = "";
@@ -127,7 +128,7 @@ sub do_action {
 	} elsif($cgi->param("DELETE") ne ""){
 		my $file = $cgi->param("file");
 		if($file eq ""){
-			return $wiki->error("ファイルが指定されていません。");
+			return $wiki->error(RC_BAD_REQUEST, "ファイルが指定されていません。");
 		}
 		
 		# ログの記録
@@ -141,17 +142,17 @@ sub do_action {
 	} else {
 		my $file = $cgi->param("file");
 		if($file eq ""){
-			return $wiki->error("ファイルが指定されていません。");
+			return $wiki->error(RC_BAD_REQUEST, "ファイルが指定されていません。");
 		}
 		unless($wiki->page_exists($pagename)){
-			return $wiki->error("ページが存在しません。");
+			return $wiki->error(RC_NOT_FOUND ,"ページが存在しません。");
 		}
 		unless($wiki->can_show($pagename)){
-			return $wiki->error("ページの参照権限がありません。");
+			return $wiki->error(RC_FORBIDDEN, "ページの参照権限がありません。");
 		}
 		my $filepath = $wiki->config('attach_dir')."/".&Util::url_encode($pagename).".".&Util::url_encode($file);
 		unless(-e $filepath){
-			return $wiki->error("ファイルがみつかりません。");
+			return $wiki->error(RC_NOT_FOUND, "ファイルがみつかりません。");
 		}
 		
 		my $contenttype = &get_mime_type($wiki,$file);

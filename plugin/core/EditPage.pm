@@ -5,7 +5,9 @@
 ###############################################################################
 package plugin::core::EditPage;
 use strict;
+use HTTP::Status;
 use plugin::core::Diff;
+
 #==============================================================================
 # コンストラクタ
 #==============================================================================
@@ -35,13 +37,13 @@ sub do_action {
 	my $login = $wiki->get_login_info();
 
 	if($pagename eq ""){
-		return $wiki->error("ページが指定されていません。");
+		return $wiki->error(RC_BAD_REQUEST, "ページが指定されていません。");
 	}
 	if($pagename =~ /([\|\[\]])|^:|([^:]:[^:])/){
-		return $wiki->error("ページ名に使用できない文字が含まれています。");
+		return $wiki->error(RC_BAD_REQUEST, "ページ名に使用できない文字が含まれています。");
 	}
 	if(!$wiki->can_modify_page($pagename)){
-		return $wiki->error("ページの編集は許可されていません。");
+		return $wiki->error(RC_FORBIDDEN, "ページの編集は許可されていません。");
 	}
 	
 	#--------------------------------------------------------------------------
@@ -49,7 +51,7 @@ sub do_action {
 	if($cgi->param("save") ne ""){
 		if($wiki->config('page_max') ne '' && $wiki->config('page_max') > 0){
 			if(length($content) > $wiki->config('page_max')){
-				return $wiki->error('ページが保存可能な最大サイズを超えています。');
+				return $wiki->error(RC_BAD_REQUEST, 'ページが保存可能な最大サイズを超えています。');
 			}
 		}
 		if($wiki->page_exists($pagename) && $cgi->param("lastmodified") != $time){
@@ -106,7 +108,7 @@ sub do_action {
 	} elsif($cgi->param("diff") ne ""){
 		if($wiki->config('page_max') ne '' && $wiki->config('page_max') > 0){
 			if(length($content) > $wiki->config('page_max')){
-				return $wiki->error('ページが保存可能な最大サイズを超えています。');
+				return $wiki->error(RC_BAD_REQUEST, 'ページが保存可能な最大サイズを超えています。');
 			}
 		}
 		$time = $cgi->param("lastmodified");
@@ -134,7 +136,7 @@ sub do_action {
 	} elsif($cgi->param("preview") ne ""){
 		if($wiki->config('page_max') ne '' && $wiki->config('page_max') > 0){
 			if(length($content) > $wiki->config('page_max')){
-				return $wiki->error('ページが保存可能な最大サイズを超えています。');
+				return $wiki->error(RC_BAD_REQUEST, 'ページが保存可能な最大サイズを超えています。');
 			}
 		}
 		$time = $cgi->param("lastmodified");

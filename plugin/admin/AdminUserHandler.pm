@@ -5,6 +5,7 @@
 ###############################################################################
 package plugin::admin::AdminUserHandler;
 use strict;
+use HTTP::Status;
 #==============================================================================
 # コンストラクタ
 #==============================================================================
@@ -156,15 +157,15 @@ sub save_user {
 	
 	if(!defined($users->{$id})){
 		if($id eq "" || $pass eq "" || $type eq ""){
-			return $wiki->error("ID、パスワード、ユーザ種別を指定してください。");
+			return $wiki->error(RC_BAD_REQUEST, "ID、パスワード、ユーザ種別を指定してください。");
 		}
 	} else {
 		if($id eq "" || $type eq ""){
-			return $wiki->error("ID、ユーザ種別を指定してください。");
+			return $wiki->error(RC_BAD_REQUEST, "ID、ユーザ種別を指定してください。");
 		}
 	}
 	unless($id =~ /^[a-zA-Z0-9\-_]+$/ && (!defined($pass) || $pass =~ /^[a-zA-Z0-9\-_]+/)){
-		return $wiki->error("ID、パスワードには半角英数字しか使用できません。");
+		return $wiki->error(RC_BAD_REQUEST, "ID、パスワードには半角英数字しか使用できません。");
 	}
 	
 	if(defined($users->{$id})){
