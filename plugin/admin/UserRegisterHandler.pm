@@ -5,6 +5,7 @@
 ###############################################################################
 package plugin::admin::UserRegisterHandler;
 use strict;
+use HTTP::Status;
 #==============================================================================
 # コンストラクタ
 #==============================================================================
@@ -68,10 +69,10 @@ sub save_user {
 		return $wiki->error("入力されたIDはすでに使用されています。");
 	}
 	if($id eq "" || $pass eq ""){
-		return $wiki->error("ID、パスワードを指定してください。");
+		return $wiki->error(RC_BAD_REQUEST, "ID、パスワードを指定してください。");
 	}
 	unless($id =~ /^[a-zA-Z0-9\-_]+$/ && $pass =~ /^[a-zA-Z0-9\-_]+/){
-		return $wiki->error("ID、パスワードには半角英数字しか使用できません。");
+		return $wiki->error(RC_BAD_REQUEST, "ID、パスワードには半角英数字しか使用できません。");
 	}
 	
 	Util::sync_update_config($wiki,$wiki->config('userdat_file'),sub {

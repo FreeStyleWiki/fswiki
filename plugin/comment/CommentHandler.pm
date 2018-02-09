@@ -5,6 +5,7 @@
 ############################################################
 package plugin::comment::CommentHandler;
 use strict;
+use HTTP::Status;
 #===========================================================
 # コンストラクタ
 #===========================================================
@@ -29,7 +30,7 @@ sub do_action {
 	my $option  = $cgi->param("option");
 	
 	if(!$wiki->can_show($page)){
-		return $wiki->error("ページの参照権限がありません。");
+		return $wiki->error(RC_FORBIDDEN, "ページの参照権限がありません。");
 	}
 	if($name eq ""){
 		$name = "名無しさん";

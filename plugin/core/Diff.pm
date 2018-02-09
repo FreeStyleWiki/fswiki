@@ -6,7 +6,7 @@
 package plugin::core::Diff;
 use Algorithm::Diff qw(traverse_sequences);
 use strict;
-
+use HTTP::Status;
 #==============================================================================
 # コンストラクタ
 #==============================================================================
@@ -30,7 +30,7 @@ sub do_action {
 		$pagename = $wiki->config("frontpage");
 	}
 	unless($wiki->can_show($pagename)){
-		return $wiki->error("参照権限がありません。");
+		return $wiki->error(RC_FORBIDDEN, "参照権限がありません。");
 	}
 	if($cgi->param('rollback') ne ''){
 		return $self->rollback($wiki, $pagename, $cgi->param('rollback'));
@@ -79,7 +79,7 @@ sub rollback {
 	my $page = shift;
 	my $gen  = shift;
 	unless($wiki->can_modify_page($page)){
-		return $wiki->error("更新権限がありません。");
+		return $wiki->error(RC_FORBIDDEN, "更新権限がありません。");
 	}
 	my $source = $wiki->get_backup($page,$gen);
 	$wiki->save_page($page, $source);

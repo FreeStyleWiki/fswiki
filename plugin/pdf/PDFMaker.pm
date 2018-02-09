@@ -8,6 +8,7 @@ use strict;
 use lib '../../';
 use lib '../../lib';
 use plugin::pdf::PDFParser;
+use HTTP::Status;
 use URI::Escape;
 #==============================================================================
 # コンストラクタ
@@ -34,11 +35,11 @@ sub do_action {
 	
 	# ページが存在するかチェック
 	unless($wiki->page_exists($pagename)){
-		return $wiki->error("ページがありません。");
+		return $wiki->error(RC_NOT_FOUND, "ページがありません。");
 	}
 	# 参照権があるかどうかチェック
 	unless($wiki->can_show($pagename)){
-		return $wiki->error("ページの参照権限がありません。");
+		return $wiki->error(RC_FORBIDDEN, "ページの参照権限がありません。");
 	}
 	
 	my $filename = $self->{dir}."/".&Util::url_encode($pagename).".pdf";

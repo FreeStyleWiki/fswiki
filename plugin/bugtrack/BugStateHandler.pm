@@ -5,6 +5,7 @@
 ######################################################
 package plugin::bugtrack::BugStateHandler;
 use strict;
+use HTTP::Status;
 #=====================================================
 # コンストラクタ
 #=====================================================
@@ -26,7 +27,7 @@ sub do_action {
 	
 	if($wiki->page_exists($source)){
 		if(!$wiki->can_modify_page($source)){
-			return $wiki->error("ページの編集は許可されていません。");
+			return $wiki->error(RC_FORBIDDEN, "ページの編集は許可されていません。");
 		}
 		my $content = $wiki->get_page($source);
 		$content =~ s/(\n\*状態：)\s+(.*)/$1 $state/;

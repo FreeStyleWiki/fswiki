@@ -6,6 +6,7 @@
 ###############################################################################
 package plugin::rename::RenameHandler;
 use strict;
+use HTTP::Status;
 #==============================================================================
 # コンストラクタ
 #==============================================================================
@@ -42,29 +43,29 @@ sub do_rename {
 
 	# エラーチェック
 	if($newpagename eq ""){
-		return $wiki->error("ページが指定されていません!!");
+		return $wiki->error(RC_BAD_REQUEST, "ページが指定されていません!!");
 	}
 	if($newpagename =~ /[\|:\[\]]/){
-		return $wiki->error("ページ名に使用できない文字が含まれています。");
+		return $wiki->error(RC_BAD_REQUEST, "ページ名に使用できない文字が含まれています。");
 	}
 	if($wiki->page_exists($newpagename)){
-		return $wiki->error("既にリネーム先のページが存在します!!");
+		return $wiki->error(RC_BAD_REQUEST, "既にリネーム先のページが存在します!!");
 	}
 	if($newpagename eq $pagename){
-		return $wiki->error("同一のページが指定されています!!");
+		return $wiki->error(RC_BAD_REQUEST, "同一のページが指定されています!!");
 	}
 	if(!$wiki->can_modify_page($pagename) || !$wiki->can_modify_page($newpagename)){
-		return $wiki->error("ページの編集は許可されていません。");
+		return $wiki->error(RC_FORBIDDEN, "ページの編集は許可されていません。");
 	}
 	if($wiki->page_exists($pagename)){
 		if($cgi->param("lastmodified") < $time){
-			return $wiki->error("ページは既に別のユーザによって更新されています。");
+			return $wiki->error(RC_PRECONDITION_FAILED, "ページは既に別のユーザによって更新されています。");
 		}
 	}
 
 	# FrontPageを移動しようとした場合にはエラー
 	if($pagename eq $wiki->config("frontpage") && $do ne "copy"){
-		return $wiki->error($wiki->config("frontpage")."を移動することはできません。");
+		return $wiki->error(RC_FORBIDDEN, $wiki->config("frontpage")."を移動することはできません。");
 	}
 
 	# コピー処理

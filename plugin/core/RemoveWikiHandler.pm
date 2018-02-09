@@ -6,6 +6,7 @@
 ###############################################################################
 package plugin::core::RemoveWikiHandler;
 use strict;
+use HTTP::Status;
 #==============================================================================
 # コンストラクタ
 #==============================================================================
@@ -27,18 +28,18 @@ sub do_action {
 	my $config = &Util::load_config_hash($farm,$farm->config('farmconf_file'));
 	if($config->{remove}==1){
 		if(!defined($login)){
-			return $farm->error("Wikiの削除は許可されていません。");
+			return $farm->error(RC_FORBIDDEN, "Wikiの削除は許可されていません。");
 		}
 	} elsif($config->{remove}==2){
 		if(!defined($login) || $login->{type}!=0){
-			return $farm->error("Wikiの削除は許可されていません。");
+			return $farm->error(RC_FORBIDDEN, "Wikiの削除は許可されていません。");
 		}
 	}
 	
 	# Wikiの存在チェック
 	my $path = $farm->get_CGI()->param("path");
 	unless($path =~ s|^/|| and $farm->wiki_exists($path)) {
-		return $farm->error("Wikiが存在しません。");
+		return $farm->error(RC_NOT_FOUND, "Wikiが存在しません。");
 	}
 	
 	if($farm->get_CGI()->param("exec_delete") ne ""){

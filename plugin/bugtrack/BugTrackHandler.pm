@@ -5,6 +5,7 @@
 ################################################################################
 package plugin::bugtrack::BugTrackHandler;
 use strict;
+use HTTP::Status;
 #===============================================================================
 # コンストラクタ
 #===============================================================================
@@ -32,11 +33,11 @@ sub do_action {
 	my $time     = time();
 	
 	if($name eq ""){
-		return $wiki->error("名前が入力されていません。");
+		return $wiki->error(RC_BAD_REQUEST, "名前が入力されていません。");
 	} elsif($subject eq ""){
-		return $wiki->error("サマリが入力されていません。");
+		return $wiki->error(RC_BAD_REQUEST, "サマリが入力されていません。");
 	} elsif($content eq ""){
-		return $wiki->error("バグ内容が入力されていません。");
+		return $wiki->error(RC_BAD_REQUEST, "バグ内容が入力されていません。");
 	}
 	
 	# post_nameというキーでクッキーをセットする

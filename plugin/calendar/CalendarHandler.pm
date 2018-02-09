@@ -5,6 +5,7 @@
 ################################################################################
 package plugin::calendar::CalendarHandler;
 use strict;
+use HTTP::Status;
 #===============================================================================
 # コンストラクタ
 #===============================================================================
@@ -298,7 +299,7 @@ sub do_action {
 	}
 
 	if ($name eq "" || !Util::check_numeric($year) || !Util::check_numeric($month)) {
-		return $wiki->error("パラメータが不正です。");
+		return $wiki->error(RC_BAD_REQUEST, "パラメータが不正です。");
 
 	} else {
 		$wiki->set_title("$name/$year-$month");
