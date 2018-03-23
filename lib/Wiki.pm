@@ -1417,7 +1417,7 @@ sub save_page {
 	my $sage     = shift;
 	
 	# ページ名をチェック
-	if($pagename =~ /([\|\[\]])|^:|([^:]:[^:])/){
+	if(!Util::check_pagename($pagename)){
 		die "ページ名に使用できない文字が含まれています。";
 	}
 	# いったんパラメータを上書き
