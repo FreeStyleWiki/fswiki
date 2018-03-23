@@ -39,7 +39,7 @@ sub do_action {
 	if($pagename eq ""){
 		return $wiki->error(RC_BAD_REQUEST, "ページが指定されていません。");
 	}
-	if($pagename =~ /([\|\[\]])|^:|([^:]:[^:])/){
+	if(!Util::check_pagename($pagename)){
 		return $wiki->error(RC_BAD_REQUEST, "ページ名に使用できない文字が含まれています。");
 	}
 	if(!$wiki->can_modify_page($pagename)){

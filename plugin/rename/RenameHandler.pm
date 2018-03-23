@@ -45,7 +45,7 @@ sub do_rename {
 	if($newpagename eq ""){
 		return $wiki->error(RC_BAD_REQUEST, "ページが指定されていません!!");
 	}
-	if($newpagename =~ /[\|:\[\]]/){
+	if(!Util::check_pagename($newpagename)){
 		return $wiki->error(RC_BAD_REQUEST, "ページ名に使用できない文字が含まれています。");
 	}
 	if($wiki->page_exists($newpagename)){
