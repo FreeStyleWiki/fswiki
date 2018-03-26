@@ -7,6 +7,7 @@ package plugin::info::OutlineParser;
 use strict;
 use vars qw(@ISA);
 use Wiki::HTMLParser;
+use CGI2;
 
 @ISA = qw(Wiki::HTMLParser);
 
@@ -15,10 +16,16 @@ use Wiki::HTMLParser;
 #==============================================================================
 sub new {
 	my $class = shift;
-	my $self  = Wiki::HTMLParser->new(shift);
+	my $wiki  = shift;
+	my $self  = Wiki::HTMLParser->new($wiki);
+	
 	$self->{outline_html}  = "";
 	$self->{outline_level} =  0;
 	$self->{outline_cnt}   =  0;
+	
+	# 他ページのoutline処理用
+	$self->{url}           = "";
+	
 	return bless $self,$class;
 }
 
@@ -57,7 +64,7 @@ sub l_headline {
 	}
 	
 	$self->{'outline_close_'.$level} = 1;
-	$self->{outline_html} .= "<li><a href=\"#p".$self->{outline_cnt}."\">$text</a>";
+	$self->{outline_html} .= "<li><a href=\"".$self->{url}."#p".$self->{outline_cnt}."\">$text</a>";
 	$self->{outline_cnt}++;
 }
 
@@ -67,6 +74,14 @@ sub l_headline {
 sub outline {
 	my $self   = shift;
 	my $source = shift;
+	my $page   = shift;
+	
+	# 他ページのアウトライン処理の場合はURL部を生成する
+	my $cgi = CGI2->new();
+	if ($page ne $cgi->param("page")) {
+		$self->{url} = $self->{wiki}->create_url({page=>$page});
+	}
+	
 	$self->parse($source);
 	
 	while($self->{outline_level} != 0){
