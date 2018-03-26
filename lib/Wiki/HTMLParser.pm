@@ -473,15 +473,36 @@ sub wiki_anchor {
 	my $page = shift;
 	my $name = shift;
 	
+	my $anchor = undef;
+	my $ppage = $page;
+	
 	if(!defined($name) || $name eq ""){
 		$name = $page;
 	}
-	if($self->{wiki}->page_exists($page)){
-		return "<a href=\"".$self->{wiki}->create_page_url($page)."\" class=\"wikipage\">".
+	
+	if($self->{wiki}->page_exists($page)) {
+		#アンカーを含むページが存在する場合はリンクを優先
+		return "<a href=\"".$self->{wiki}->create_page_url($page).(defined($anchor)?"#".$anchor:"")."\" class=\"wikipage\">".
 		       &Util::escapeHTML($name)."</a>";
 	} else {
-		return "<span class=\"nopage\">".&Util::escapeHTML($name)."</span>".
-		       "<a href=\"".$self->{wiki}->create_page_url($page)."\">?</a>";
+		#最後の"#"以降をアンカーとする
+		if($page =~ m/#([^#]+)$/) {
+			$page = $`;
+			$anchor = $1;
+		}
+		if(defined($anchor) && $page eq '') {
+			#同一ページのアンカーリンク
+			return "<a href=\"#$anchor\" class=\"wikipage\">".
+			       &Util::escapeHTML($name)."</a>";
+		} elsif($self->{wiki}->page_exists($page)) {
+			#指定ページのアンカーリンク
+			return "<a href=\"".$self->{wiki}->create_page_url($page).(defined($anchor)?"#".$anchor:"")."\" class=\"wikipage\">".
+			       &Util::escapeHTML($name)."</a>";
+		} else {
+			#新規ページ作成用リンク
+			return "<span class=\"nopage\">".&Util::escapeHTML($name)."</span>".
+			       "<a href=\"".$self->{wiki}->create_page_url($ppage)."\">?</a>";
+		}
 	}
 }
 
