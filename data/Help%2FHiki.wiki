@@ -62,12 +62,16 @@
  *[[Google|http://www.google.co.jp/]]
  *[[FrontPage]]
  *[[トップ|FrontPage]]
+ *[[トップの最初の見出し|FrontPage#p0]]
+ *[[このページの「リンク」見出し|#p8]]
  *mailto:foo@xxx.dom
  *[メールはこちら|mailto:foo@xxx.dom?subject=TEST&body=TESTMAIL]
 *http://www.yahoo.co.jp/
 *[Google|http://www.google.co.jp/]
 *[[FrontPage]]
 *[[トップ|FrontPage]]
+*[[トップの最初の見出し|FrontPage#p0]]
+*[[このページの「リンク」見出し|#p8]]
 *mailto:foo@xxx.dom
 *[メールはこちら|mailto:foo@xxx.dom?subject=TEST&body=TESTMAIL]
 
