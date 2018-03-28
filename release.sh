@@ -77,6 +77,7 @@ zip $DIR_NAME.zip ./$DIR_NAME/data/FrontPage.wiki
 zip $DIR_NAME.zip ./$DIR_NAME/data/Help.wiki
 zip $DIR_NAME.zip ./$DIR_NAME/data/Help%2FFSWiki.wiki
 zip $DIR_NAME.zip ./$DIR_NAME/data/Help%2FHiki.wiki
+zip $DIR_NAME.zip ./$DIR_NAME/data/Help%2FWalWiki.wiki
 zip $DIR_NAME.zip ./$DIR_NAME/data/Help%2FYukiWiki.wiki
 zip $DIR_NAME.zip ./$DIR_NAME/data/PluginHelp.wiki
 
