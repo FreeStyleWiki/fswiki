@@ -10,7 +10,6 @@
  Wiki API
 </p>
 <h2>new </h2>
-use Wiki::CacheParser;
 <p>
    コンストラクタ
 </p>
@@ -223,6 +222,8 @@ use Wiki::CacheParser;
    my $wiki = shift;
    ...
    return $wiki-&gt;error(エラーメッセージ);
+     or
+   return $wiki-&gt;error(エラーコード, エラーメッセージ);
  }
 </pre>
 <h2>get_plugin_instance </h2>
@@ -471,7 +472,6 @@ use Wiki::CacheParser;
 <pre>
  # 世代バックアップを使用していない場合
  my $backup = $wiki-&gt;get_backup(ページ名);
-
  # 世代バックアップを使用している場合
  my $backup = $wiki-&gt;get_backup(ページ名,世代);
 </pre>
@@ -481,7 +481,6 @@ use Wiki::CacheParser;
 <h2>save_page </h2>
 <p>
  ページを保存します。
- キャッシュモードONで利用している場合、ページのキャッシュも削除されます。
 </p>
 <pre>
  $wiki-&gt;save_page(ページ名,ページ内容);
@@ -497,7 +496,6 @@ use Wiki::CacheParser;
 <pre>
  $wiki-&gt;save_page(ページ名,ページ内容,1);
 </pre>
-
 <h2>page_exists </h2>
 <p>
  ページが存在するかどうか調べます。
@@ -525,6 +523,12 @@ use Wiki::CacheParser;
 <pre>
  $wiki-&gt;redirect(&quot;FrontPage&quot;);
 </pre>
+<p>
+ 第二引数にパート番号を渡すとそのパートにリダイレクトします。
+</p>
+<pre>
+ $wiki-&gt;redirect(&quot;FrontPage&quot;, 1);
+</pre>
 <h2>redirectURL </h2>
 <p>
  指定のURLにリダイレクトします。
@@ -540,7 +544,6 @@ use Wiki::CacheParser;
 <pre>
  # データファイルを格納するディレクトリ
  my $data_dir = $wiki-&gt;config('data_dir');
-
  # 設定を$data_dirで上書き
  $wiki-&gt;config('data_dir',$data_dir);
 </pre>

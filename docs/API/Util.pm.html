@@ -74,6 +74,18 @@
  # &lt;B&gt;と&lt;/B&gt;を削除し、&quot;文字列&quot;のみ取得
  my $text = Util::delete_tag($html);
 </pre>
+<h2>check_pagename </h2>
+<p>
+ ページ名が使用可能かどうかチェックします。<br>
+ 使用可能な場合は真、そうでない場合は偽を返します。
+</p>
+<pre>
+ if(Util::check_pagename($pagename)){
+   # 使用可能なページ名の場合
+ }else{
+   # 使用できないページ名の場合
+ }
+</pre>
 <h2>check_numeric </h2>
 <p>
    数値かどうかチェックします。数値の場合は真、そうでない場合は偽を返します。
@@ -105,6 +117,18 @@
    # 携帯電話の場合の処理
  } else {
    # 携帯電話でない場合の処理
+ }
+</pre>
+<h2>smartphone </h2>
+<p>
+   クライアントがスマートフォンかどうかチェックします。
+   スマートフォンの場合は真、そうでない場合は偽を返します。
+</p>
+<pre>
+ if(Util::smartphone()){
+   # スマートフォンの場合の処理
+ } else {
+   # スマートフォンでない場合の処理
  }
 </pre>
 <h2>load_config_hash </h2>
