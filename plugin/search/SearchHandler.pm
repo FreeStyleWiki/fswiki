@@ -26,7 +26,7 @@ sub do_action {
 	my $word = Util::trim($cgi->param("word"));
 
 	my $buf          = "";
-	my $or_search    = $cgi->param('t') eq 'on';
+	my $or_search    = $cgi->param('t') eq 'or';
 	my $with_content = $cgi->param('c') eq 'true';
 
 	$wiki->set_title("¸¡º÷");
