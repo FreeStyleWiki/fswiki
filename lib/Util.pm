@@ -723,7 +723,7 @@ sub make_content_disposition {
 	my ($filename, $disposition) = @_;
 	my $ua = $ENV{"HTTP_USER_AGENT"};
 	eval("use MIME::Base64;");
-	my $encoded = ( $ua =~ /MSIE|Trident/i   ? Jcode->new($filename)->sjis
+	my $encoded = ( $ua =~ /MSIE|Trident|Edge/i ? Jcode->new($filename)->sjis
 	              : $ua =~ /Chrome|Firefox/i ? "=?utf-8?B?".MIME::Base64::encode_base64(Jcode->new($filename)->utf8,'')."?="
 	              : Jcode->new($filename)->utf8 );
 	return "Content-Disposition: $disposition;filename=\"".$encoded."\"\n\n";
