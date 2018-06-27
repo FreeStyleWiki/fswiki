@@ -85,7 +85,7 @@ sub parse_rss {
 	}
 
 	if($version eq "1.0"){
-		$$content =~ m#(/channel>|/language>)#gsi;
+		$$content =~ m#(/channel>|/language>)#si;
 	}
 	
 	my $count=0;
@@ -98,26 +98,26 @@ sub parse_rss {
 		my $title = "";
 		my $date  = "";
 		
-		$item =~ m#title>([^<]+)</#gsi;
+		$item =~ m#title>([^<]+)</#si;
 		$title = $1;
 		
-		$item =~ m#link>([^<]+)</#gsi;
+		$item =~ m#link>([^<]+)</#si;
 		$link = $1;
 		$link =~ s/\s".*//g; # ダブルクォーテーション以降を切り落とす
 
 		if ($version eq "2.0") {
-			if ($item =~ m#pubDate>([^<]+)</#gsi) {
+			if ($item =~ m#pubDate>([^<]+)</#si) {
 				$date = $1;
 			}
 		}
 		if ($version eq "1.0") {
-			#if ($item =~ m#(description|dc\:date)>([^<]+)</#gs) {
-			if ($item =~ m#dc\:date>([^<]+)</#gsi) {
+			#if ($item =~ m#(description|dc\:date)>([^<]+)</#si) {
+			if ($item =~ m#dc\:date>([^<]+)</#si) {
 				$date = $1;
 			}
 		}
 		if ($version eq "0.91") {
-			if($item =~ m#description>([^<]+)</#gsi){
+			if($item =~ m#description>([^<]+)</#si){
 				$date = $1;
 			}
 		}
