@@ -12,7 +12,7 @@
 # <pre>
 # {{google l}}
 # </pre>
-# <p>Menu向けにGoogleロゴとテキストボックスとボタンを縦に配置できます。</p>
+# <p>Menu向けにテキストボックスとボタンを縦に配置できます。</p>
 # <pre>
 # {{google v}}
 # </pre>
@@ -20,17 +20,6 @@
 # <pre>
 # {{google t}}
 # </pre>
-# <p>Googleロゴのサイズと背景色を指定できます。</p>
-# <pre>
-# {{google (25|40|50|60)(wht|gry|blk)}}
-# </pre>
-# <p>
-#   前の数字がサイズ(本来のロゴとの比率)、後ろのアルファベットが
-#   =背景色(wht=白、gry=灰色、blk=黒)になっています。
-#   実際のロゴの一覧は、
-#   =<a href='http://www.google.co.jp/intl/ja/logos.html'>Google ロゴ使用</a>
-#   を参照してください。
-# </p>
 # <p>テキストボックスの幅が指定できます。</p>
 # <pre>
 # {{google s幅}}
@@ -124,12 +113,14 @@ EOD
 		return <<"EOD";
 <!-- Google  -->
 <div class="plugin_google" align="$align">
-<form method=GET action="http://www.google.co.jp/search" $target>
-<a href="http://www.google.co.jp/"><IMG SRC="http://www.google.com/logos/Logo_${logo}.gif" border="0" ALT="Google" align="absmiddle"></a> <INPUT type=submit name=btnG VALUE="検索"><input type=hidden name=hl value="ja"><input type=hidden name=ie value="EUC-JP"><br>
-<INPUT TYPE=text name=q size=${size} maxlength=255 value="">${siteoption}
-</form>
+  <form method="GET" action="https://www.google.co.jp/search" $target>
+    <input type="text" name="q" size="${size}" maxlength="255" value="" placeholder="Google検索">${siteoption}<br>
+    <input type="submit" name="btnG" value="Google検索">
+    <input type="hidden" name="hl" value="ja">
+    <input type="hidden" name="ie" value="EUC-JP">
+  </form>
 </div>
-<!-- Google -->
+<!-- /Google -->
 EOD
 	} else {
 		my $siteoption = '';
@@ -147,21 +138,16 @@ EOD
 		return <<"EOD";
 <!-- Google  -->
 <div class="plugin_google" align="$align">
-<FORM method=GET action="http://www.google.co.jp/search" $target>
-<TABLE style="border: none"><tr><td  style="border: none" align=center>
-<A HREF="http://www.google.co.jp/">
-<IMG SRC="http://www.google.com/logos/Logo_${logo}.gif" 
-border="0" ALT="Google" align="absmiddle"></A>
-</td>
-<td  style="border: none" align=center>
-<INPUT TYPE=text name=q size=${size} maxlength=255 value="">
-<input type=hidden name=hl value="ja">
-<input type=hidden name=ie value="EUC-JP">
-<INPUT type=submit name=btnG VALUE="Google検索">${siteoption}
-</td></tr></TABLE>
-</FORM>
+  <form method="GET" action="https://www.google.co.jp/search" $target>
+    <table style="border: none"><tr><td style="border: none" align=center>
+    <input type="text" name="q" size="${size}" maxlength="255" value="" placeholder="Google検索">
+    <input type="submit" name="btnG" value="Google検索">${siteoption}
+    </td></tr></table>
+    <input type="hidden" name="hl" value="ja">
+    <input type="hidden" name="ie" value="EUC-JP">
+  </form>
 </div>
-<!-- Google -->
+<!-- /Google -->
 EOD
 	}
 }
