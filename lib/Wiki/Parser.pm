@@ -82,7 +82,7 @@ sub parse {
 		}
 		
 		# ブロック書式のエスケープ
-		if($word2 eq "\\\\" || $word1 eq "\\"){
+		if(!$self->{block} && ($word2 eq "\\\\" || $word1 eq "\\")){
 			my @obj = $self->parse_line(substr($line, 1));
 			$self->l_text(\@obj);
 			next;
