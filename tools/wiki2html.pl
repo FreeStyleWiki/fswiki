@@ -14,7 +14,7 @@ use Cwd;
 # 引数が足りない
 #===========================================================
 if($#ARGV==-1){
-	die "wiki2html.pl filename [-title=title] [-output=sjis|euc]\n";
+	die "wiki2html.pl filename [-title=title] [-css=stylesheet] [-output=sjis|euc] [-farm=farmname]\n";
 }
 
 #===========================================================
@@ -23,7 +23,9 @@ if($#ARGV==-1){
 my $from    = "";
 my $title   = "";
 my $css     = "";
+my $input   = "";
 my $output  = "euc";
+my $farm    = "";
 my $count   = 0;
 my $current = cwd();
 chdir($ENV{'FSWIKI_HOME'});
@@ -65,7 +67,7 @@ my $url = $from;
 $url =~ s/\?.*$//;
 my $wiki = Wiki::Wiki2HTML->new('setup.dat', CGI->new($url));
 
-if($farm){
+if($farm ne ""){
 	$farm =~ s|\/$||;
 	$farm=~/^\// or $farm = "/$farm";
 	$wiki->config('data_dir'   , $wiki->config('data_dir'  ).$farm);
