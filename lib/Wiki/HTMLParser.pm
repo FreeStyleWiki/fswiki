@@ -94,7 +94,7 @@ sub l_numlist {
 		$self->{para} = 0;
 	}
 	
-	if($self->{list} == 0 && $level <= $self->{level}){
+	if($self->{list} == 0 && $level >= $self->{level}){
 		$self->end_list;
 	}
 	$self->{list} = 1;
